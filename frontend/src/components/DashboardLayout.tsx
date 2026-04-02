@@ -1,23 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard } from 'lucide-react';
+import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
+import { useChat } from './ChatContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  sidebarExtra?: React.ReactNode;
+  sidebarTopExtra?: React.ReactNode;
+  sidebarBottomExtra?: React.ReactNode;
+  noPadding?: boolean;
 }
 
-export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
+export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sidebarBottomExtra, noPadding }: DashboardLayoutProps) => {
   const { isSubscribed, daysRemaining } = useAccess();
+  const { sessions, currentSessionId, setCurrentSessionId, createNewSession, deleteSession } = useChat();
   const location = useLocation();
   const navigate = useNavigate();
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  
+
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  const handleSessionClick = (id: string) => {
+    setCurrentSessionId(id);
+    if (location.pathname !== '/daniel') {
+      navigate('/daniel');
+    }
+  };
+
+  const handleNewChat = () => {
+    createNewSession();
+    if (location.pathname !== '/daniel') {
+      navigate('/daniel');
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,14 +68,23 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C75F33]/5 rounded-full blur-[150px] pointer-events-none animate-float-alt" />
 
       {/* Sidebar */}
-      <div className="w-[250px] flex-shrink-0 flex flex-col border-r border-white/5 relative z-10 bg-[#0f1014]/50 backdrop-blur-sm">
-        <div className="p-6">
+      <div className="w-[280px] h-screen flex-shrink-0 flex flex-col border-r border-white/5 relative z-10 bg-[#0f1014]/50 backdrop-blur-sm">
+        {/* Sidebar Header (Fixed) */}
+        <div className="p-6 flex flex-col gap-6 flex-shrink-0">
           <Logo />
+          <button
+            onClick={handleNewChat}
+            className="flex items-center justify-center gap-2 py-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 shadow-lg shadow-white/5"
+          >
+            <Plus size={18} />
+            <span>New Strategist</span>
+          </button>
         </div>
 
-        <div className="flex-1 px-4 py-2 flex flex-col gap-2">
-          <div className="px-3 mb-2 text-xs font-semibold text-[#8e9299] tracking-wider">
-            MAIN MENU
+        {/* Sidebar Middle (Menu - Fixed) */}
+        <div className="px-4 py-2 flex flex-col gap-1 flex-shrink-0">
+          <div className="px-3 mb-2 text-[10px] font-bold text-[#8e9299] tracking-widest uppercase opacity-50">
+            Main Menu
           </div>
           {navItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path);
@@ -64,38 +93,78 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-colors ${
-                  isActive 
-                    ? 'bg-white text-black font-medium' 
-                    : 'text-[#8e9299] hover:text-white hover:bg-white/5'
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${isActive
+                  ? 'bg-white text-black font-medium'
+                  : 'text-[#8e9299] hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                 {item.name}
               </Link>
             );
           })}
-          
-          {/* Subscription Status Badge */}
-          <div className="mt-4 mx-3 p-4 bg-white/5 border border-white/10 rounded-xl">
-            <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-wider mb-2">Subscription</div>
-            <div className="flex items-center justify-between">
-              <span className={`text-xs font-medium ${isSubscribed ? 'text-[#10b981]' : 'text-[#e53935]'}`}>
-                {isSubscribed ? `${daysRemaining} Days Left` : 'Inactive'}
-              </span>
-              {!isSubscribed && (
-                <Link to="/subscription" className="text-[10px] text-white underline underline-offset-2 hover:text-[#C75F33] transition-colors">
-                  Upgrade
-                </Link>
-              )}
-            </div>
-          </div>
         </div>
 
-        <div className="p-4 mt-auto">
-          <button 
+        {/* Sidebar Body (History - Scrollable) */}
+        <div className="flex-1 px-4 py-2 flex flex-col min-h-0">
+          {sidebarExtra && (
+            <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-2 flex-shrink-0">
+              {sidebarExtra}
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3 h-full min-h-0">
+            <div className="px-3 text-[10px] font-bold text-[#8e9299] tracking-widest uppercase opacity-50 flex-shrink-0">Recent History</div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 flex flex-col gap-1">
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => handleSessionClick(s.id)}
+                  className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all flex-shrink-0 ${currentSessionId === s.id && location.pathname === '/daniel'
+                    ? 'bg-white/10 text-white border border-white/5 shadow-md shadow-black/20'
+                    : 'text-[#8e9299] hover:text-white hover:bg-white/5 border border-transparent'
+                  }`}
+                >
+                  <MessageSquare size={14} className={currentSessionId === s.id && location.pathname === '/daniel' ? 'text-white' : 'text-[#8e9299] flex-shrink-0'} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate leading-tight">{s.title || 'New Chat'}</div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(s.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-lg text-[#e53935] transition-all"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          {sidebarBottomExtra && <div className="mt-2 flex-shrink-0">{sidebarBottomExtra}</div>}
+        </div>
+
+        {/* Sidebar Footer (Fixed) */}
+        <div className="p-4 border-t border-white/5 bg-[#0f1014]/50 flex-shrink-0">
+          <div className="mb-4">
+            <div className="p-4 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest mb-2 opacity-50">Subscription</div>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-bold ${isSubscribed ? 'text-[#10b981]' : 'text-[#e53935]'}`}>
+                  {isSubscribed ? `${daysRemaining} Days Left` : 'Inactive'}
+                </span>
+                {!isSubscribed && (
+                  <Link to="/subscription" className="text-[10px] text-white underline underline-offset-2 hover:text-[#C75F33] transition-colors">
+                    Upgrade
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+          <button
             onClick={() => navigate('/login')}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-white/10 text-[#e53935] hover:bg-white/5 transition-colors"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-white/10 text-[#e53935] hover:bg-white/5 transition-all active:scale-95 text-sm font-medium"
           >
             <LogOut size={18} />
             <span>Logout</span>
@@ -110,7 +179,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <div className="flex items-center gap-6">
             {/* Notification Dropdown */}
             <div className="relative" ref={notificationRef}>
-              <button 
+              <button
                 onClick={() => {
                   setShowNotifications(!showNotifications);
                   setShowProfileMenu(false);
@@ -140,7 +209,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     </div>
                   </div>
                   <div className="px-4 py-2 border-t border-white/5 text-center mt-1">
-                    <button 
+                    <button
                       onClick={() => setShowNotifications(false)}
                       className="text-xs text-[#8e9299] hover:text-white transition-colors"
                     >
@@ -153,7 +222,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
-              <div 
+              <div
                 onClick={() => {
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false);
@@ -164,9 +233,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                   <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">Dr. Jon Kabir</div>
                   <div className="text-xs text-[#8e9299]">User</div>
                 </div>
-                <img 
-                  src="https://i.pravatar.cc/150?u=jon" 
-                  alt="Profile" 
+                <img
+                  src="https://i.pravatar.cc/150?u=jon"
+                  alt="Profile"
                   className="w-10 h-10 rounded-full border border-white/10"
                 />
                 <ChevronDown size={16} className={`text-[#8e9299] group-hover:text-white transition-all duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
@@ -178,16 +247,16 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                     <div className="text-sm font-medium text-white">Dr. Jon Kabir</div>
                     <div className="text-xs text-[#8e9299]">jon.kabir@example.com</div>
                   </div>
-                  
+
                   <div className="px-2 flex flex-col gap-1">
-                    <button 
+                    <button
                       onClick={() => setShowProfileMenu(false)}
                       className="w-full text-left px-3 py-2 text-sm text-[#8e9299] hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
                       <User size={16} />
                       Profile Settings
                     </button>
-                    <button 
+                    <button
                       onClick={() => setShowProfileMenu(false)}
                       className="w-full text-left px-3 py-2 text-sm text-[#8e9299] hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
@@ -195,9 +264,9 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                       Preferences
                     </button>
                   </div>
-                  
+
                   <div className="px-2 mt-2 pt-2 border-t border-white/5">
-                    <button 
+                    <button
                       onClick={() => navigate('/login')}
                       className="w-full text-left px-3 py-2 text-sm text-[#e53935] hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
@@ -213,7 +282,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Page Content */}
         <main className="flex-1 flex flex-col relative overflow-hidden">
-          <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col p-6 md:p-8 min-h-0 overflow-y-auto">
+          <div className={`w-full flex-1 flex flex-col ${noPadding ? '' : 'p-6 md:p-8'} min-h-0 overflow-y-auto custom-scrollbar`}>
             {children}
           </div>
         </main>

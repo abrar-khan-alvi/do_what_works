@@ -14,12 +14,14 @@ import { DailyLog } from './pages/DailyLog';
 import { ExperimentDetails } from './pages/ExperimentDetails';
 import { Subscription } from './pages/Subscription';
 import { AccessProvider } from './components/AccessContext';
+import { ChatProvider } from './components/ChatContext';
 
 export default function App() {
   return (
     <AccessProvider>
-      <BrowserRouter>
-        <Routes>
+      <ChatProvider>
+        <BrowserRouter>
+          <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/daniel" element={<Daniel />} />
@@ -56,6 +58,7 @@ export default function App() {
         />
         </Routes>
       </BrowserRouter>
-    </AccessProvider>
-  );
+    </ChatProvider>
+  </AccessProvider>
+);
 }
