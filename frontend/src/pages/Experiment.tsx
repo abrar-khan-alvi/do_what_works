@@ -25,7 +25,7 @@ export const Experiment = () => {
 
   useEffect(() => {
     if (!proposalData) {
-      navigate('/pragmatist', { replace: true });
+      navigate('/daniel', { replace: true });
       return;
     }
     

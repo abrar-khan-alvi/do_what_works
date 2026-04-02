@@ -17,7 +17,7 @@ type Message = {
   };
 };
 
-export const Pragmatist = () => {
+export const Daniel = () => {
   const { isSubscribed } = useAccess();
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
@@ -98,7 +98,7 @@ export const Pragmatist = () => {
     <DashboardLayout>
       <div className="flex flex-col flex-1 min-h-0 relative">
         <div className="mb-6 flex-shrink-0">
-          <h1 className="text-3xl font-bold mb-2">Pragmatist</h1>
+          <h1 className="text-3xl font-bold mb-2">Daniel</h1>
           <p className="text-[#8e9299] text-base">
             Refine your beliefs into testable experiments.
           </p>
@@ -217,7 +217,7 @@ export const Pragmatist = () => {
               <div className="w-20 h-20 bg-[#C75F33]/20 rounded-full flex items-center justify-center text-[#C75F33] mx-auto mb-8">
                 <Lock size={40} />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-4">Unlock the Pragmatist</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">Unlock Daniel</h2>
               <p className="text-[#8e9299] mb-8 leading-relaxed">
                 Refining beliefs into testable experiments requires premium AI access. Upgrade your account to start optimizing your life.
               </p>

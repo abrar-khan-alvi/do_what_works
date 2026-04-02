@@ -147,7 +147,7 @@ export const Onboarding = () => {
       window.scrollTo(0, 0);
     } else {
       // Finish onboarding
-      navigate('/pragmatist');
+      navigate('/daniel');
     }
   };
 

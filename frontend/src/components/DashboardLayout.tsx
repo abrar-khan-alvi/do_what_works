@@ -34,7 +34,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   }, []);
 
   const navItems = [
-    { name: 'Pragmatist', path: '/pragmatist', icon: MessageCircle },
+    { name: 'Daniel', path: '/daniel', icon: MessageCircle },
     { name: 'Result', path: '/result', icon: Folder },
     { name: 'Daily Log', path: '/daily-log', icon: Calendar },
     { name: 'Subscription', path: '/subscription', icon: CreditCard },

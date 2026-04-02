@@ -7,7 +7,7 @@ import { VerifyEmail } from './pages/VerifyEmail';
 import { ResetPassword } from './pages/ResetPassword';
 import { Success } from './pages/Success';
 import { Onboarding } from './pages/Onboarding';
-import { Pragmatist } from './pages/Pragmatist';
+import { Daniel } from './pages/Daniel';
 import { Experiment } from './pages/Experiment';
 import { Result } from './pages/Result';
 import { DailyLog } from './pages/DailyLog';
@@ -22,7 +22,8 @@ export default function App() {
         <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/pragmatist" element={<Pragmatist />} />
+        <Route path="/daniel" element={<Daniel />} />
+        <Route path="/pragmatist" element={<Navigate to="/daniel" replace />} />
         <Route path="/experiment" element={<Experiment />} />
         <Route path="/result" element={<Result />} />
         <Route path="/result/:id" element={<ExperimentDetails />} />
