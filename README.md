@@ -1,20 +1,61 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Do What Works
 
-# Run and deploy your AI Studio app
+**Do What Works** is a behavioral science-driven tool designed to help you refine your beliefs into testable experiments. Powered by Daniel (your AI guide), the platform helps you optimize your life through rigorous data and execution.
 
-This contains everything you need to run your app locally.
+## 🚀 Features
 
-View your app in AI Studio: https://ai.studio/apps/8be000de-4cad-4cd3-b4d4-51f924d77a55
+- **The Pragmatist (AI Chat)**: Refine vague beliefs into clear, testable hypotheses with AI assistance.
+- **Experiment Wizard**: A guided step-by-step process to define actions, metrics, and durations for your tests.
+- **Daily Logging**: Track your progress every day with an intuitive logging interface.
+- **Results Dashboard**: Visualize your experiment outcomes and track your long-term success.
+- **Subscription Model**: Premium access model with a 10-day experiment window per subscription.
 
-## Run Locally
+## 🛠️ Tech Stack
 
-**Prerequisites:**  Node.js
+- **React 19**
+- **Vite 6**
+- **Tailwind CSS 4**
+- **Lucide Icons**
+- **Framer Motion**
 
+## 📦 Getting Started
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (latest LTS recommended)
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/abrar-khan-alvi/do_what_works.git
+   cd do_ what_works
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   Create a `.env` file in the root directory and add your `GEMINI_API_KEY`:
+   ```bash
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+## 🗺️ Roadmap
+
+- [x] AI-Driven Experiment Refinement
+- [x] Subscription & Stripe Integration (Simulated)
+- [x] Daily Activity Logging
+- [ ] Advanced Data Visualization
+- [ ] Community Experiment Sharing
+
+---
+
+Built with precision to help you **Do What Works**.
