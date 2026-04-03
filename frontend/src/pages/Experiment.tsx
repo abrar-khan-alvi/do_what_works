@@ -53,25 +53,25 @@ export const Experiment = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold mb-2">
+      <div className="mb-8 md:mb-10 px-1 md:px-0">
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">
           {currentStep === 4 ? 'Review & Launch' : 'New Experiment'}
         </h1>
         {currentStep < 4 && (
-          <p className="text-[#8e9299] text-base">
+          <p className="text-[#8e9299] text-sm md:text-base">
             Define a testable experiment step by step.
           </p>
         )}
       </div>
 
       {currentStep < 4 && (
-        <div className="flex gap-4 mb-12">
+        <div className="flex gap-2 md:gap-4 mb-8 md:mb-12 px-1 md:px-0">
           {steps.map((step, index) => {
             const isActive = index <= currentStep;
             return (
-              <div key={step} className="flex-1 flex flex-col gap-3">
-                <div className={`h-2 rounded-full ${isActive ? 'bg-[#e53935]' : 'bg-white/5'}`} />
-                <div className={`text-center text-sm ${isActive ? 'text-white' : 'text-white/40'}`}>{step}</div>
+              <div key={step} className="flex-1 flex flex-col gap-2 md:gap-3">
+                <div className={`h-1.5 md:h-2 rounded-full ${isActive ? 'bg-[#e53935]' : 'bg-white/5'}`} />
+                <div className={`text-center text-[10px] md:text-sm font-bold uppercase tracking-widest ${isActive ? 'text-white' : 'text-white/20'}`}>{step}</div>
               </div>
             );
           })}
@@ -139,14 +139,14 @@ export const Experiment = () => {
 
         {currentStep === 2 && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-xl font-medium mb-2">How will you measure it?</h2>
-            <div className="bg-[#10b981]/10 border border-[#10b981]/20 rounded-xl p-4 mb-6">
-              <p className="text-[#10b981] text-sm">
-                <span className="font-semibold">Note:</span> Selected metrics will automatically become part of your Daily Log for the duration of this experiment. No manual setup required.
+            <h2 className="text-lg md:text-xl font-medium mb-3">How will you measure it?</h2>
+            <div className="bg-[#10b981]/10 border border-[#10b981]/20 rounded-2xl p-4 md:p-5 mb-6 md:mb-8">
+              <p className="text-[#10b981] text-xs md:text-sm leading-relaxed">
+                <span className="font-bold">Note:</span> Selected metrics will automatically become part of your Daily Log for the duration of this experiment.
               </p>
             </div>
             
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 mb-6 md:mb-8">
               {predefinedMetrics.map((m) => (
                 <button
                   key={m}
@@ -154,10 +154,10 @@ export const Experiment = () => {
                     setMetric(m);
                     if (m !== 'Custom') setCustomMetric('');
                   }}
-                  className={`py-3 px-4 rounded-xl border transition-colors text-sm ${
+                  className={`py-3 md:py-3.5 px-4 rounded-xl border transition-all text-xs md:text-sm font-bold tracking-tight active:scale-95 ${
                     metric === m 
-                      ? 'bg-transparent border-white text-white' 
-                      : 'bg-transparent border-white/10 text-[#8e9299] hover:border-white/30 hover:text-white'
+                      ? 'bg-white border-white text-black' 
+                      : 'bg-white/5 border-white/5 text-[#8e9299] hover:border-white/20 hover:text-white'
                   }`}
                 >
                   {m}
@@ -173,7 +173,7 @@ export const Experiment = () => {
                 setMetric('Custom');
               }}
               placeholder="Define your metric..."
-              className="w-full bg-transparent border border-white/10 rounded-xl px-6 py-4 text-white outline-none focus:border-white/30 transition-colors"
+              className="w-full bg-[#1a1b1e] border border-white/10 rounded-xl px-5 md:px-6 py-3.5 md:py-4 text-white outline-none focus:border-[#C75F33]/50 transition-all text-sm md:text-base"
             />
           </div>
         )}

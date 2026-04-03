@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
 import { useChat } from './ChatContext';
@@ -21,12 +21,14 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleSessionClick = (id: string) => {
     setCurrentSessionId(id);
+    setIsSidebarOpen(false); // Close sidebar on mobile when a session is clicked
     if (location.pathname !== '/daniel') {
       navigate('/daniel');
     }
@@ -34,10 +36,13 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
   const handleNewChat = () => {
     createNewSession();
+    setIsSidebarOpen(false);
     if (location.pathname !== '/daniel') {
       navigate('/daniel');
     }
   };
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,6 +58,11 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Close sidebar on navigation (mobile)
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const navItems = [
     { name: 'Daniel', path: '/daniel', icon: MessageCircle },
     { name: 'Result', path: '/result', icon: Folder },
@@ -62,16 +72,35 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
   return (
     <div className="min-h-screen animate-gradient-bg text-white font-sans flex relative overflow-hidden">
-      {/* Moving background glows */}
-      <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#C75F33]/10 rounded-full blur-[120px] pointer-events-none animate-float" />
-      <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-[#C75F33]/10 rounded-full blur-[120px] pointer-events-none animate-float-reverse" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C75F33]/5 rounded-full blur-[150px] pointer-events-none animate-float-alt" />
+      {/* Moving background glows (Fixed for better performance and visibility) */}
+      <div className="absolute -top-40 -right-40 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#C75F33]/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none animate-float" />
+      <div className="absolute -bottom-40 -left-40 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-[#C75F33]/10 rounded-full blur-[80px] md:blur-[120px] pointer-events-none animate-float-reverse" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-[#C75F33]/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none animate-float-alt" />
+
+      {/* Mobile Drawer Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
-      <div className="w-[280px] h-screen flex-shrink-0 flex flex-col border-r border-white/5 relative z-10 bg-[#0f1014]/50 backdrop-blur-sm">
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-[280px] h-screen transition-transform duration-300 ease-in-out transform flex flex-col border-r border-white/5 bg-[#0f1014]/95 backdrop-blur-xl lg:translate-x-0 lg:static lg:bg-[#0f1014]/50 lg:backdrop-blur-sm
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
         {/* Sidebar Header (Fixed) */}
         <div className="p-6 flex flex-col gap-6 flex-shrink-0">
-          <Logo />
+          <div className="flex items-center justify-between">
+            <Logo />
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden text-[#8e9299] hover:text-white"
+            >
+              <X size={20} />
+            </button>
+          </div>
           <button
             onClick={handleNewChat}
             className="flex items-center justify-center gap-2 py-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 shadow-lg shadow-white/5"
@@ -134,7 +163,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                       e.stopPropagation();
                       deleteSession(s.id);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-lg text-[#e53935] transition-all"
+                    className="md:opacity-0 group-hover:opacity-100 p-1 hover:bg-white/10 rounded-lg text-[#e53935] transition-all"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -173,10 +202,17 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative z-10 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col relative z-20 h-screen overflow-hidden">
         {/* Topbar */}
-        <header className="h-20 flex items-center justify-end px-8 flex-shrink-0">
-          <div className="flex items-center gap-6">
+        <header className="h-20 flex items-center justify-between lg:justify-end px-4 md:px-8 flex-shrink-0">
+          <button 
+            onClick={toggleSidebar}
+            className="lg:hidden p-2 text-[#8e9299] hover:text-white"
+          >
+            <Menu size={24} />
+          </button>
+
+          <div className="flex items-center gap-4 md:gap-6">
             {/* Notification Dropdown */}
             <div className="relative" ref={notificationRef}>
               <button
@@ -184,14 +220,14 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                   setShowNotifications(!showNotifications);
                   setShowProfileMenu(false);
                 }}
-                className={`transition-colors relative ${showNotifications ? 'text-white' : 'text-[#8e9299] hover:text-white'}`}
+                className={`transition-colors relative p-2 ${showNotifications ? 'text-white' : 'text-[#8e9299] hover:text-white'}`}
               >
                 <Bell size={20} />
-                <div className="absolute top-0 right-0 w-2 h-2 bg-[#10b981] rounded-full border-2 border-[#0f1014]"></div>
+                <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#10b981] rounded-full border-2 border-[#0f1014]"></div>
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-4 w-80 bg-[#1a1b1e]/95 border border-white/10 rounded-xl shadow-2xl py-2 z-50 backdrop-blur-xl">
+                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80 bg-[#1a1b1e]/95 border border-white/10 rounded-2xl shadow-2xl py-2 z-[60] backdrop-blur-xl">
                   <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center">
                     <h3 className="font-medium text-white text-sm">Notifications</h3>
                     <span className="text-[10px] font-medium text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-full uppercase tracking-wider">2 New</span>
@@ -227,22 +263,22 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false);
                 }}
-                className="flex items-center gap-3 cursor-pointer group"
+                className="flex items-center gap-2 md:gap-3 cursor-pointer group"
               >
-                <div className="text-right">
+                <div className="text-right hidden sm:block">
                   <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">Dr. Jon Kabir</div>
                   <div className="text-xs text-[#8e9299]">User</div>
                 </div>
                 <img
                   src="https://i.pravatar.cc/150?u=jon"
                   alt="Profile"
-                  className="w-10 h-10 rounded-full border border-white/10"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10"
                 />
-                <ChevronDown size={16} className={`text-[#8e9299] group-hover:text-white transition-all duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`text-[#8e9299] group-hover:text-white transition-all duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
               </div>
 
               {showProfileMenu && (
-                <div className="absolute right-0 mt-4 w-56 bg-[#1a1b1e]/95 border border-white/10 rounded-xl shadow-2xl py-2 z-50 backdrop-blur-xl">
+                <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-64 bg-[#1a1b1e]/95 border border-white/10 rounded-2xl shadow-2xl py-2 z-[60] backdrop-blur-xl">
                   <div className="px-4 py-3 border-b border-white/5 mb-2">
                     <div className="text-sm font-medium text-white">Dr. Jon Kabir</div>
                     <div className="text-xs text-[#8e9299]">jon.kabir@example.com</div>
@@ -282,7 +318,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
         {/* Page Content */}
         <main className="flex-1 flex flex-col relative overflow-hidden">
-          <div className={`w-full flex-1 flex flex-col ${noPadding ? '' : 'p-6 md:p-8'} min-h-0 overflow-y-auto custom-scrollbar`}>
+          <div className={`w-full flex-1 flex flex-col ${noPadding ? '' : 'p-4 md:p-8'} min-h-0 overflow-y-auto custom-scrollbar`}>
             {children}
           </div>
         </main>

@@ -33,7 +33,7 @@ export const Daniel = () => {
   const [isTyping, setIsTyping] = useState(false);
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const webhookUrl = 'https://thepragmatist.app.n8n.cloud/webhook/08ad6064-f2f8-4906-b642-38ee4c488b7e/chat';
+  const webhookUrl = import.meta.env.VITE_DANIEL_WEBHOOK_URL;
 
   const messages = currentSession?.messages || [];
 
@@ -91,7 +91,16 @@ export const Daniel = () => {
             const regex = new RegExp(`(?:^|\\n)\\s*(?:\\*\\*)?${label}:?\\s*(?:\\*\\*)?\\s*(.*)`, 'i');
             const match = text.match(regex);
             if (match && match[1]) {
-              return match[1].trim().replace(/\*\*$/, '');
+              let val = match[1].trim()
+                .replace(/\*\*$/, '')
+                .replace(/^[:\s-]+/, ''); // Clean up leading punctuation/whitespace
+
+              // For Duration, we only want the primary number
+              if (label === 'Duration') {
+                const numericMatch = val.match(/\d+/);
+                if (numericMatch) return numericMatch[0];
+              }
+              return val;
             }
             return null;
           };
@@ -141,84 +150,83 @@ export const Daniel = () => {
       <div className="flex flex-col flex-1 h-full min-h-0 relative">
         {/* Main Content Centered Container */}
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="max-w-3xl mx-auto w-full px-6 py-12 md:py-20 flex flex-col min-h-full">
+          <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-8 md:py-20 flex flex-col min-h-full">
             {messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-700">
-                <div className="w-20 h-20 bg-[#C75F33]/10 rounded-3xl flex items-center justify-center text-[#C75F33] mb-8 ring-1 ring-[#C75F33]/20 shadow-2xl">
-                  <Sparkles size={40} />
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#C75F33]/10 rounded-3xl flex items-center justify-center text-[#C75F33] mb-6 md:mb-8 ring-1 ring-[#C75F33]/20 shadow-2xl">
+                  <Sparkles size={32} className="md:w-10 md:h-10" />
                 </div>
-                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">Unlock Your Potential</h1>
-                <p className="text-[#8e9299] text-lg max-w-lg mb-12 font-medium leading-relaxed">
+                <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight px-4">Unlock Your Potential</h1>
+                <p className="text-[#8e9299] text-base md:text-lg max-w-lg mb-8 md:mb-12 font-medium leading-relaxed px-6">
                   State a belief, a problem, or a habit you'd like to optimize. Daniel will help you turn it into a testable experiment.
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl px-4">
                   {SUGGESTIONS.map((s, i) => (
                     <button 
                       key={i} 
                       onClick={() => handleSend(undefined, s.text)}
-                      className="flex items-start gap-4 p-4 text-left border border-white/5 bg-white/5 rounded-2xl hover:bg-white/10 hover:border-white/10 transition-all group active:scale-95"
+                      className="flex items-start gap-3 md:gap-4 p-3 md:p-4 text-left border border-white/5 bg-white/5 rounded-2xl hover:bg-white/10 hover:border-white/10 transition-all group active:scale-95"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#C75F33] group-hover:scale-110 transition-transform">{s.icon}</div>
-                      <span className="text-sm text-[#8e9299] mt-1 group-hover:text-white transition-colors">{s.text}</span>
+                      <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#C75F33] group-hover:scale-110 transition-transform flex-shrink-0">{s.icon}</div>
+                      <span className="text-xs md:text-sm text-[#8e9299] mt-0.5 md:mt-1 group-hover:text-white transition-colors">{s.text}</span>
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="space-y-12 pb-32">
+              <div className="space-y-8 md:space-y-12 pb-32">
                 {messages.map((msg) => (
-                  <div key={msg.id} className={`flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+                  <div key={msg.id} className={`flex gap-3 md:gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ${
                       msg.sender === 'daniel' ? 'bg-[#C75F33]/10 text-[#C75F33] ring-1 ring-[#C75F33]/20' : 'bg-white text-black'
                     }`}>
-                      {msg.sender === 'daniel' ? <Sparkles size={20} /> : <User size={20} />}
+                      {msg.sender === 'daniel' ? <Sparkles size={16} className="md:w-5 md:h-5" /> : <User size={16} className="md:w-5 md:h-5" />}
                     </div>
 
-                    <div className={`flex flex-col gap-3 min-w-0 flex-1 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                      <div className={`text-[16px] leading-[1.7] markdown-content w-full ${
-                        msg.sender === 'user' ? 'text-white font-medium bg-white/5 rounded-2xl p-6 border border-white/5' : 'text-white/90'
+                    <div className={`flex flex-col gap-2 md:gap-3 min-w-0 flex-1 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                      <div className={`text-sm md:text-[16px] leading-[1.6] md:leading-[1.7] markdown-content w-full ${
+                        msg.sender === 'user' ? 'text-white font-medium bg-white/5 rounded-2xl p-4 md:p-6 border border-white/5' : 'text-white/90'
                       }`}>
                         <ReactMarkdown>{msg.text}</ReactMarkdown>
                       </div>
-                      <div className="text-[10px] text-[#8e9299] font-bold uppercase tracking-widest px-1 opacity-40">{formatTime(msg.timestamp)}</div>
+                      <div className="text-[9px] md:text-[10px] text-[#8e9299] font-bold uppercase tracking-widest px-1 opacity-40">{formatTime(msg.timestamp)}</div>
 
                       {msg.isProposal && msg.proposalData && (
-                        <div className="mt-6 w-full bg-[#1a1b1e] border border-white/10 rounded-3xl p-8 shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700 relative overflow-hidden group">
-                          <div className="absolute top-0 right-0 w-64 h-64 bg-[#C75F33]/5 rounded-full blur-[100px] -mr-32 -mt-32" />
-                          <div className="flex items-center gap-4 mb-8">
-                            <div className="w-12 h-12 bg-[#10b981]/10 rounded-2xl flex items-center justify-center text-[#10b981] ring-1 ring-[#10b981]/20"><CheckCircle2 size={24} /></div>
-                            <div>
-                              <h3 className="text-xl font-bold text-white tracking-tight">Experiment Ready</h3>
-                              <p className="text-[10px] text-[#8e9299] uppercase tracking-widest font-bold font-sans">Daniel Strategy Protocol</p>
+                        <div className="mt-6 md:mt-8 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-6 duration-700 w-full max-w-2xl">
+                          <div className="w-full bg-[#111215] border border-white/10 rounded-2xl p-5 md:p-8 relative group">
+                            {/* Header */}
+                            <div className="flex flex-col gap-3 md:gap-4 mb-6 md:mb-8">
+                              <div className="flex items-center gap-2 md:gap-3">
+                                <CheckCircle2 size={20} className="text-[#10b981] md:w-6 md:h-6" />
+                                <span className="text-xs md:text-sm font-bold tracking-widest text-white uppercase">DANIEL</span>
+                              </div>
+                              <p className="text-xs md:text-sm text-[#8e9299] font-medium opacity-80">Testable. This can be structured into an experiment.</p>
+                              <div className="h-[1px] w-full bg-white/5 mt-1 md:mt-2" />
                             </div>
-                          </div>
-                          <div className="space-y-6 mb-8 relative">
-                            {[
-                              { label: 'Hypothesis', val: msg.proposalData.hypothesis, color: '#C75F33' },
-                              { label: 'Action Plan', val: msg.proposalData.action, color: '#C75F33' }
-                            ].map((item, i) => (
-                              <div key={i} className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                                <div className="text-[#8e9299] text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: item.color }} />
-                                  {item.label}
+
+                            {/* Content */}
+                            <div className="flex flex-col gap-6 md:gap-8">
+                              {[
+                                { label: 'Hypothesis', val: msg.proposalData.hypothesis },
+                                { label: 'Action', val: msg.proposalData.action },
+                                { label: 'Metric', val: msg.proposalData.metric },
+                                { label: 'Duration', val: msg.proposalData.duration }
+                              ].map((item, i) => (
+                                <div key={i} className="flex flex-col gap-1.5 md:gap-2">
+                                  <span className="text-xs md:text-sm text-[#8e9299] font-medium">{item.label}</span>
+                                  <p className="text-white text-sm md:text-[15px] leading-relaxed font-medium">{item.val}</p>
                                 </div>
-                                <div className="text-white text-[15px] leading-relaxed">{item.val}</div>
-                              </div>
-                            ))}
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-white/5 p-5 rounded-2xl border border-white/5">
-                                <div className="text-[#8e9299] text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#C75F33] rounded-full" />Success Metric</div>
-                                <div className="text-white font-medium">{msg.proposalData.metric}</div>
-                              </div>
-                              <div className="bg-white/5 p-5 rounded-2xl border border-white/5 text-[#10b981]">
-                                <div className="text-[#8e9299] text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-2"><div className="w-1.5 h-1.5 bg-[#10b981] rounded-full" />Duration</div>
-                                <div className="text-lg font-bold">{msg.proposalData.duration}</div>
-                              </div>
+                              ))}
                             </div>
                           </div>
-                          <button onClick={() => navigate('/experiment', { state: { proposalData: msg.proposalData } })} className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-white text-black rounded-2xl font-bold hover:bg-[#C75F33] hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-2xl group ring-offset-4 ring-offset-[#0f1014] focus:ring-2 focus:ring-[#C75F33]">
-                            <span className="text-lg">Activate Experiment</span>
-                            <ArrowUpRight size={22} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+
+                          {/* Button outside card */}
+                          <button 
+                            onClick={() => navigate('/experiment', { state: { proposalData: msg.proposalData } })} 
+                            className="w-full md:w-fit flex items-center justify-center gap-2.5 px-6 py-3.5 md:py-4 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all transform active:scale-95 shadow-2xl group"
+                          >
+                            <span className="text-sm">Convert to Experiment</span>
+                            <ArrowUpRight size={18} className="stroke-[2.5]" />
                           </button>
                         </div>
                       )}
@@ -226,10 +234,10 @@ export const Daniel = () => {
                   </div>
                 ))}
                 {isTyping && (
-                  <div className="flex gap-6 animate-pulse">
-                    <div className="w-10 h-10 rounded-xl bg-[#C75F33]/10 text-[#C75F33] flex items-center justify-center border border-[#C75F33]/20"><Sparkles size={20} /></div>
-                    <div className="flex gap-2 items-center bg-white/5 rounded-2xl px-6 py-4 border border-white/5">
-                      {[0, 150, 300].map(d => <div key={d} className="w-2 h-2 bg-[#C75F33] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
+                  <div className="flex gap-3 md:gap-6 animate-pulse">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-[#C75F33]/10 text-[#C75F33] flex items-center justify-center border border-[#C75F33]/20"><Sparkles size={16} className="md:w-5 md:h-5" /></div>
+                    <div className="flex gap-2 items-center bg-white/5 rounded-2xl px-5 py-3 md:px-6 md:py-4 border border-white/5">
+                      {[0, 150, 300].map(d => <div key={d} className="w-1.5 h-1.5 md:w-2 md:h-2 bg-[#C75F33] rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />)}
                     </div>
                   </div>
                 )}
@@ -239,29 +247,34 @@ export const Daniel = () => {
         </div>
 
         {/* Floating Input Area Centered */}
-        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/95 to-transparent pt-20 pb-10 px-6">
+        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/95 to-transparent pt-12 md:pt-20 pb-6 md:pb-10 px-4 md:px-6">
           <div className="max-w-3xl mx-auto w-full relative">
-            <form onSubmit={handleSend} className="relative bg-[#1a1b1e] border border-white/10 rounded-[28px] shadow-2xl focus-within:border-[#C75F33]/50 transition-all transition-all group overflow-hidden p-2">
-              <input value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Type a belief or something you'd like to test..." className="w-full bg-transparent text-white pl-6 pr-16 py-4 outline-none placeholder:text-[#8e9299]/60 text-lg" />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <button type="submit" disabled={!inputValue.trim() || isTyping || !currentSessionId} className="w-12 h-12 bg-white text-black rounded-2xl flex items-center justify-center hover:bg-[#C75F33] hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed transform active:scale-90 shadow-xl group">
-                  <ArrowRight size={24} className="group-hover:translate-x-0.5 transition-transform" />
+            <form onSubmit={handleSend} className="relative bg-[#1a1b1e] border border-white/10 rounded-[24px] md:rounded-[28px] shadow-2xl focus-within:border-[#C75F33]/50 transition-all group overflow-hidden p-1.5 md:p-2">
+              <input 
+                value={inputValue} 
+                onChange={(e) => setInputValue(e.target.value)} 
+                placeholder="Type a belief or habit..." 
+                className="w-full bg-transparent text-white pl-4 md:pl-6 pr-14 md:pr-16 py-3 md:py-4 outline-none placeholder:text-[#8e9299]/60 text-base md:text-lg" 
+              />
+              <div className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2">
+                <button type="submit" disabled={!inputValue.trim() || isTyping || !currentSessionId} className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-[#C75F33] hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed transform active:scale-90 shadow-xl group">
+                  <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>
             </form>
-            <p className="text-[10px] text-[#8e9299]/40 text-center mt-4 font-bold tracking-[0.2em] uppercase">Daniel Strategy protocol - Advanced Behavioral Analysis</p>
+            <p className="text-[8px] md:text-[10px] text-[#8e9299]/40 text-center mt-3 md:mt-4 font-bold tracking-[0.2em] uppercase">Daniel Strategy protocol - Advanced Behavioral Analysis</p>
           </div>
         </div>
 
         {/* Subscription Lock Overlay */}
         {!isSubscribed && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-[#0f1014]/40 p-6 rounded-2xl">
-            <div className="bg-[#1a1b1e] border border-white/10 p-12 rounded-[48px] max-w-lg w-full text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-700 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#C75F33] to-transparent" />
-              <div className="w-28 h-28 bg-[#C75F33]/20 rounded-full flex items-center justify-center text-[#C75F33] mx-auto mb-10 ring-[12px] ring-[#C75F33]/5 animate-pulse"><Lock size={56} /></div>
-              <h2 className="text-4xl font-bold text-white mb-6 tracking-tight">Unlock Your Strategist</h2>
-              <p className="text-[#8e9299] mb-12 leading-relaxed text-lg font-medium px-4">Experience the full power of Daniel's behavioral optimization. Upgrade now to build and track live experiments.</p>
-              <Link to="/subscription" className="group relative block w-full py-6 bg-white text-black rounded-3xl font-bold hover:bg-[#C75F33] hover:text-white transition-all transform hover:scale-[1.05] active:scale-95 shadow-2xl overflow-hidden shadow-white/5"><span className="relative z-10 text-xl tracking-tight">Get Full Access</span></Link>
+          <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-[#0f1014]/40 p-4 md:p-6">
+            <div className="bg-[#1a1b1e] border border-white/10 p-8 md:p-12 rounded-[32px] md:rounded-[48px] max-w-lg w-full text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-700 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C75F33] to-transparent" />
+              <div className="w-20 h-20 md:w-28 md:h-28 bg-[#C75F33]/20 rounded-full flex items-center justify-center text-[#C75F33] mx-auto mb-6 md:mb-10 ring-[8px] md:ring-[12px] ring-[#C75F33]/5 animate-pulse"><Lock size={40} className="md:w-14 md:h-14" /></div>
+              <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6 tracking-tight">Unlock Your Strategist</h2>
+              <p className="text-[#8e9299] mb-8 md:mb-12 leading-relaxed text-sm md:text-lg font-medium px-2 md:px-4">Experience the full power of Daniel's behavioral optimization. Upgrade now to build and track live experiments.</p>
+              <Link to="/subscription" className="group relative block w-full py-4 md:py-6 bg-white text-black rounded-2xl md:rounded-3xl font-bold hover:bg-[#C75F33] hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-2xl overflow-hidden shadow-white/5"><span className="relative z-10 text-base md:text-xl tracking-tight">Get Full Access</span></Link>
             </div>
           </div>
         )}

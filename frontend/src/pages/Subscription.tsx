@@ -26,10 +26,10 @@ export const Subscription = () => {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto py-10 px-4">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Choose Your Path</h1>
-          <p className="text-[#8e9299] text-lg max-w-2xl mx-auto">
+      <div className="max-w-4xl mx-auto py-8 md:py-10 px-4">
+        <div className="text-center mb-10 md:mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">Choose Your Path</h1>
+          <p className="text-[#8e9299] text-base md:text-lg max-w-2xl mx-auto px-4">
             Unlock the full power of Daniel's behavioral science engine to refine your habits and optimize your life.
           </p>
         </div>
@@ -42,8 +42,8 @@ export const Subscription = () => {
                 Active Subscription
               </div>
             )}
-            
-            <div className="p-8 pt-12">
+
+            <div className="p-6 md:p-8 pt-10 md:pt-12">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-2xl font-bold text-white">Full Access</h3>
@@ -73,11 +73,10 @@ export const Subscription = () => {
               <button
                 onClick={handleSubscribe}
                 disabled={isSubscribed || isProcessing}
-                className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${
-                  isSubscribed 
-                    ? 'bg-transparent border border-[#10b981]/30 text-[#10b981] cursor-default' 
+                className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-3 transition-all duration-300 ${isSubscribed
+                    ? 'bg-transparent border border-[#10b981]/30 text-[#10b981] cursor-default'
                     : 'bg-white text-black hover:bg-[#C75F33] hover:text-white hover:scale-[1.02] active:scale-[0.98]'
-                } disabled:opacity-50`}
+                  } disabled:opacity-50`}
               >
                 {isProcessing ? (
                   <>
@@ -96,7 +95,7 @@ export const Subscription = () => {
                   </>
                 )}
               </button>
-              
+
               {!isSubscribed && (
                 <p className="text-center text-[#8e9299] text-[10px] mt-4 uppercase tracking-[0.1em]">
                   Secure encrypted transaction via Stripe
@@ -118,8 +117,8 @@ export const Subscription = () => {
                 </div>
               </div>
               <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-2">
-                <div 
-                  className={`h-full transition-all duration-1000 ${isSubscribed ? 'bg-[#10b981]' : 'bg-white/10'}`} 
+                <div
+                  className={`h-full transition-all duration-1000 ${isSubscribed ? 'bg-[#10b981]' : 'bg-white/10'}`}
                   style={{ width: isSubscribed ? `${(daysRemaining / 10) * 100}%` : '0%' }}
                 />
               </div>
