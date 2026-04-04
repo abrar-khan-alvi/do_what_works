@@ -3,6 +3,7 @@ import { DashboardLayout } from '../components/DashboardLayout';
 import { steps, options } from './Onboarding';
 import { Settings, Bell, Palette, Database, Trash2, Edit2, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export const Preferences = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ export const Preferences = () => {
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [tempAnswers, setTempAnswers] = useState<Record<string, number>>({});
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('user_onboarding_data');
@@ -23,10 +25,12 @@ export const Preferences = () => {
   }, []);
 
   const handleResetOnboarding = () => {
-    if (window.confirm("Are you sure you want to reset your behavioral profile? This will clear all your answers and take you back to the onboarding process.")) {
-      localStorage.removeItem('user_onboarding_data');
-      navigate('/onboarding');
-    }
+    setIsResetModalOpen(true);
+  };
+
+  const confirmReset = () => {
+    localStorage.removeItem('user_onboarding_data');
+    navigate('/onboarding');
   };
 
   const startEditing = (stepId: number) => {
@@ -232,6 +236,16 @@ export const Preferences = () => {
 
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        onConfirm={confirmReset}
+        title="Reset Profile"
+        message="Are you sure you want to reset your behavioral profile? This will clear all your answers and take you back to the onboarding process. This action cannot be undone."
+        confirmText="Reset Profile"
+        variant="danger"
+      />
     </DashboardLayout>
   );
 };

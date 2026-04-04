@@ -2,19 +2,19 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface DailyLogEntry {
   id: string;
-  date: string;             // "YYYY-MM-DD"
+  date: string;
   completed: 'yes' | 'no';
-  metricValue: number;      // 1-10 score
-  notes: string;            // experiment-specific observation
-  dailyObservation: string; // global observation for that day
+  metricValue: number;
+  notes: string;
+  dailyObservation: string;
 }
 
 export interface Experiment {
   id: string;
   hypothesis: string;
   action: string;
-  metric: string;           
-  durationDays: number;     
+  metric: string;
+  durationDays: number;
   startDate: string;        // "YYYY-MM-DD"
   status: 'active' | 'completed' | 'abandoned';
   logs: DailyLogEntry[];
@@ -29,6 +29,7 @@ interface ExperimentContextType {
   getTodayLog: (experimentId: string) => DailyLogEntry | null;
   deleteExperiment: (id: string) => void;
   archiveExperiment: (id: string, status: 'completed' | 'abandoned') => void;
+  restoreExperiment: (id: string) => void;
 }
 
 const ExperimentContext = createContext<ExperimentContextType | undefined>(undefined);
@@ -47,7 +48,7 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const launchExperiment = (data: Omit<Experiment, 'id' | 'startDate' | 'status' | 'logs'>) => {
     // Archive current active experiment if it exists
-    const updatedExperiments = experiments.map(e => 
+    const updatedExperiments = experiments.map(e =>
       e.status === 'active' ? { ...e, status: 'abandoned' as const } : e
     );
 
@@ -64,7 +65,7 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const logToday = (experimentId: string, entry: Omit<DailyLogEntry, 'id' | 'date'>) => {
     const today = new Date().toISOString().split('T')[0];
-    
+
     setExperiments(prev => prev.map(exp => {
       if (exp.id === experimentId) {
         // Remove existing log for today if it exists (update)
@@ -74,9 +75,9 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           id: crypto.randomUUID(),
           date: today,
         };
-        
+
         const updatedLogs = [...filteredLogs, newLog];
-        
+
         // Auto-complete if duration reached
         let status = exp.status;
         if (updatedLogs.length >= exp.durationDays) {
@@ -109,16 +110,29 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setExperiments(prev => prev.map(e => e.id === id ? { ...e, status } : e));
   };
 
+  const restoreExperiment = (id: string) => {
+    setExperiments(prev => prev.map(e => {
+      if (e.id === id) {
+        return { ...e, status: 'active' as const };
+      }
+      if (e.status === 'active') {
+        return { ...e, status: 'abandoned' as const };
+      }
+      return e;
+    }));
+  };
+
   return (
-    <ExperimentContext.Provider value={{ 
-      experiments, 
-      activeExperiment, 
-      launchExperiment, 
-      logToday, 
-      hasLoggedToday, 
-      getTodayLog, 
+    <ExperimentContext.Provider value={{
+      experiments,
+      activeExperiment,
+      launchExperiment,
+      logToday,
+      hasLoggedToday,
+      getTodayLog,
       deleteExperiment,
-      archiveExperiment
+      archiveExperiment,
+      restoreExperiment
     }}>
       {children}
     </ExperimentContext.Provider>

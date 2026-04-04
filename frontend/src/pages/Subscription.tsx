@@ -19,10 +19,10 @@ export const Subscription = () => {
   };
 
   const features = [
-    { title: "Daniel's Strategic Insight", desc: "Unlimited belief refinement with our advanced behavioral engine." },
-    { title: "Concurrent Experiments", desc: "Track up to 5 concurrent behavioral tests simultaneously." },
-    { title: "Deep Analytics", desc: "Comprehensive daily logging with advanced trend visualization." },
-    { title: "Evidence Reports", desc: "Exportable summary reports of your experiment results." },
+    { title: "Strategic Optimization", desc: "Unlimited belief refinement with our advanced strategist engine." },
+    { title: "Protocol Precision", desc: "Focus on one high-fidelity experiment at a time to ensure maximum scientific integrity." },
+    { title: "Trend Visualization", desc: "Access high-fidelity daily logging with professional-grade analytics." },
+    { title: "Evidence Synthesis", desc: "Generate exportable summary reports of your behavioral transformations." },
     { title: "Priority Processing", desc: "Instant AI responses even during peak system usage." }
   ];
 

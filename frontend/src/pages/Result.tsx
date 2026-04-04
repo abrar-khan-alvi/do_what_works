@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
-import { FlaskConical, Plus, ArrowRight, History, Calendar, CheckCircle2, MoreVertical } from 'lucide-react';
+import { FlaskConical, Plus, ArrowRight, History, Calendar, CheckCircle2, MoreVertical, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { useAccess } from '../components/AccessContext';
 import { useExperiments, Experiment } from '../components/ExperimentContext';
 import { FeatureLock } from '../components/FeatureLock';
@@ -9,9 +10,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const Result = () => {
   const { isSubscribed } = useAccess();
-  const { experiments } = useExperiments();
+  const { experiments, restoreExperiment } = useExperiments();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'abandoned'>('all');
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [restoreTargetId, setRestoreTargetId] = useState<string | null>(null);
 
   const filteredExperiments = experiments.filter(exp => {
     if (filter === 'all') return true;
@@ -33,6 +36,24 @@ export const Result = () => {
     { id: 'completed', label: 'Completed' },
     { id: 'abandoned', label: 'Archived' },
   ];
+
+  const handleRestore = (id: string) => {
+    setRestoreTargetId(id);
+    const hasActive = experiments.some(e => e.status === 'active');
+    if (hasActive) {
+      setIsRestoreModalOpen(true);
+    } else {
+      confirmRestore(id);
+    }
+  };
+
+  const confirmRestore = (id?: string) => {
+    const targetId = id || restoreTargetId;
+    if (targetId) {
+      restoreExperiment(targetId);
+      setRestoreTargetId(null);
+    }
+  };
 
   return (
     <DashboardLayout noPadding>
@@ -135,6 +156,17 @@ export const Result = () => {
                             <span>View Analytics</span>
                             <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                           </button>
+
+                          {exp.status !== 'active' && (
+                            <button 
+                              onClick={() => handleRestore(exp.id)}
+                              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#10b981]/10 text-xs text-[#10b981] hover:bg-[#10b981]/20 transition-all font-bold"
+                              title="Restore to Active"
+                            >
+                              <TrendingUp size={14} />
+                              <span className="hidden sm:inline">Restore</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </motion.div>
@@ -180,6 +212,19 @@ export const Result = () => {
           />
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => {
+          setIsRestoreModalOpen(false);
+          setRestoreTargetId(null);
+        }}
+        onConfirm={confirmRestore}
+        title="Restore Experiment"
+        message="Restoring this experiment will automatically archive your currently active one. Do you wish to proceed?"
+        confirmText="Restore"
+        variant="primary"
+      />
     </DashboardLayout>
   );
 };

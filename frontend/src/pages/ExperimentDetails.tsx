@@ -7,11 +7,14 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExperiments } from '../components/ExperimentContext';
 import { motion } from 'framer-motion';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export const ExperimentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { experiments, deleteExperiment, archiveExperiment } = useExperiments();
+  const { experiments, deleteExperiment, archiveExperiment, restoreExperiment } = useExperiments();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = React.useState(false);
   
   const experiment = experiments.find(e => e.id === id);
 
@@ -32,14 +35,30 @@ export const ExperimentDetails = () => {
   }
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this experiment and all its data?')) {
-      deleteExperiment(experiment.id);
-      navigate('/result');
-    }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    deleteExperiment(experiment.id);
+    navigate('/result');
   };
 
   const handleArchive = () => {
     archiveExperiment(experiment.id, 'abandoned');
+  };
+
+  const handleRestore = () => {
+    // If there's already an active experiment, we want to warn the user
+    const hasActive = experiments.some(e => e.status === 'active');
+    if (hasActive) {
+      setIsRestoreModalOpen(true);
+    } else {
+      confirmRestore();
+    }
+  };
+
+  const confirmRestore = () => {
+    restoreExperiment(experiment.id);
   };
 
   // Analytics Calculations
@@ -108,11 +127,21 @@ export const ExperimentDetails = () => {
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors text-xs font-bold uppercase tracking-widest"
               >
                 <Archive size={14} />
-                Archive
-              </button>
-            )}
+            </button>
+          )}
+
+          {experiment.status !== 'active' && (
             <button 
-              onClick={handleDelete}
+              onClick={handleRestore}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 text-[#10b981] hover:bg-[#10b981]/20 transition-colors text-xs font-bold uppercase tracking-widest"
+            >
+              <TrendingUp size={14} />
+              Restore
+            </button>
+          )}
+
+          <button 
+            onClick={handleDelete}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20 transition-colors text-xs font-bold uppercase tracking-widest"
             >
               <Trash2 size={14} />
@@ -344,6 +373,26 @@ export const ExperimentDetails = () => {
         </div>
 
       </div>
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Experiment"
+        message="Are you sure you want to delete this experiment and all its data? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        onConfirm={confirmRestore}
+        title="Restore Experiment"
+        message="Restoring this experiment will automatically archive your currently active one. Do you wish to proceed?"
+        confirmText="Restore"
+        variant="primary"
+      />
     </DashboardLayout>
   );
 };
