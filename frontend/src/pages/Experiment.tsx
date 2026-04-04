@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useExperiments } from '../components/ExperimentContext';
 
 const steps = ['Hypothesis', 'Action', 'Metric', 'Duration'];
 const predefinedMetrics = [
@@ -13,6 +14,7 @@ const predefinedMetrics = [
 export const Experiment = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { launchExperiment } = useExperiments();
   const [currentStep, setCurrentStep] = useState(0);
   
   const proposalData = location.state?.proposalData;
@@ -48,6 +50,15 @@ export const Experiment = () => {
   };
 
   const handleLaunch = () => {
+    const durationNum = parseInt(duration.replace(/[^0-9]/g, '')) || 7;
+    
+    launchExperiment({
+      hypothesis,
+      action,
+      metric: metric === 'Custom' ? customMetric : metric,
+      durationDays: durationNum,
+    });
+    
     navigate('/result');
   };
 

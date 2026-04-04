@@ -15,49 +15,52 @@ import { ExperimentDetails } from './pages/ExperimentDetails';
 import { Subscription } from './pages/Subscription';
 import { AccessProvider } from './components/AccessContext';
 import { ChatProvider } from './components/ChatContext';
+import { ExperimentProvider } from './components/ExperimentContext';
 
 export default function App() {
   return (
     <AccessProvider>
       <ChatProvider>
-        <BrowserRouter>
-          <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/daniel" element={<Daniel />} />
-        <Route path="/pragmatist" element={<Navigate to="/daniel" replace />} />
-        <Route path="/experiment" element={<Experiment />} />
-        <Route path="/result" element={<Result />} />
-        <Route path="/result/:id" element={<ExperimentDetails />} />
-        <Route path="/daily-log" element={<DailyLog />} />
-        <Route path="/subscription" element={<Subscription />} />
-        <Route path="/history" element={<Navigate to="/result" replace />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/verify-email-signup" element={<VerifyEmail nextRoute="/success-signup" />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route 
-          path="/success-signup" 
-          element={
-            <Success 
-              title="Account Created Successfully!" 
-              subtitle="Your account is successfully! You can sign in now." 
-            />
-          } 
-        />
-        <Route 
-          path="/success-reset" 
-          element={
-            <Success 
-              title="Password Updated Successfully!" 
-              subtitle="Your new password has been saved. You can now continue securely." 
-            />
-          } 
-        />
-        </Routes>
-      </BrowserRouter>
+        <ExperimentProvider>
+          <BrowserRouter>
+            <Routes>
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/daniel" element={<Daniel />} />
+          <Route path="/pragmatist" element={<Navigate to="/daniel" replace />} />
+          <Route path="/experiment" element={<Experiment />} />
+          <Route path="/result" element={<Result />} />
+          <Route path="/result/:id" element={<ExperimentDetails />} />
+          <Route path="/daily-log" element={<DailyLog />} />
+          <Route path="/subscription" element={<Subscription />} />
+          <Route path="/history" element={<Navigate to="/result" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/verify-email-signup" element={<VerifyEmail nextRoute="/success-signup" />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route 
+            path="/success-signup" 
+            element={
+              <Success 
+                title="Account Created Successfully!" 
+                subtitle="Your account is successfully! You can sign in now." 
+              />
+            } 
+          />
+          <Route 
+            path="/success-reset" 
+            element={
+              <Success 
+                title="Password Updated Successfully!" 
+                subtitle="Your new password has been saved. You can now continue securely." 
+              />
+            } 
+          />
+          </Routes>
+        </BrowserRouter>
+      </ExperimentProvider>
     </ChatProvider>
   </AccessProvider>
 );

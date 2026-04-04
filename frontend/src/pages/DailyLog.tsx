@@ -1,149 +1,270 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
-import { Check, X, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Check, X, Clock, MessageSquare, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAccess } from '../components/AccessContext';
-import { Link } from 'react-router-dom';
+import { useExperiments } from '../components/ExperimentContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { FeatureLock } from '../components/FeatureLock';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const DailyLog = () => {
   const { isSubscribed } = useAccess();
+  const { activeExperiment, logToday, hasLoggedToday, getTodayLog } = useExperiments();
+  const navigate = useNavigate();
+
   const [completed, setCompleted] = useState<'yes' | 'no' | null>(null);
-  const [score, setScore] = useState('5');
+  const [score, setScore] = useState(5);
   const [experimentNotes, setExperimentNotes] = useState('');
   const [dailyNotes, setDailyNotes] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Sync with existing log if day already logged
+  useEffect(() => {
+    if (activeExperiment && hasLoggedToday(activeExperiment.id)) {
+      const log = getTodayLog(activeExperiment.id);
+      if (log) {
+        setCompleted(log.completed);
+        setScore(log.metricValue);
+        setExperimentNotes(log.notes);
+        setDailyNotes(log.dailyObservation);
+        setIsSubmitted(true);
+      }
+    }
+  }, [activeExperiment, hasLoggedToday, getTodayLog]);
+
+  const handleSubmit = () => {
+    if (!activeExperiment || !completed) return;
+
+    logToday(activeExperiment.id, {
+      completed,
+      metricValue: score,
+      notes: experimentNotes,
+      dailyObservation: dailyNotes,
+    });
+    setIsSubmitted(true);
+  };
+
+  const progressPercent = activeExperiment 
+    ? Math.round(((activeExperiment.logs.length) / activeExperiment.durationDays) * 100) 
+    : 0;
 
   return (
-    <DashboardLayout>
-      <div className="relative">
-      <div className="relative">
-        <div className="mb-6 md:mb-8 px-1 md:px-0">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Daily Log</h1>
-          <p className="text-[#8e9299] text-sm md:text-base leading-relaxed">
-            Log your active experiment metrics and daily observations.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-6 md:gap-8">
-          {/* Global Daily Notes */}
-          <div className="bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-5 md:p-6">
-            <h2 className="text-base md:text-lg font-bold text-white mb-4">Daily Observations</h2>
-            <textarea
-              value={dailyNotes}
-              onChange={(e) => setDailyNotes(e.target.value)}
-              placeholder="Note anything significant..."
-              className="w-full h-24 bg-[#1a1b1e]/40 border border-white/10 rounded-xl p-4 text-white outline-none resize-none focus:border-[#C75F33]/50 transition-all text-sm placeholder:text-[#8e9299]/30"
-            />
+    <DashboardLayout noPadding>
+      <div className={`w-full flex-1 flex flex-col relative min-h-0 p-4 md:p-8 ${!isSubscribed ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
+        <div className="relative h-full flex flex-col max-w-4xl mx-auto w-full">
+          
+          {/* Header */}
+          <div className="mb-8 px-1 md:px-0">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Daily Log</h1>
+            <p className="text-[#8e9299] text-sm md:text-base leading-relaxed">
+              Consistency is evidence. Log your protocol execution and metrics.
+            </p>
           </div>
 
-          {/* Active Experiment Metrics */}
-          <div>
-            <h2 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-3 px-1">
-              Active Experiments
-              <span className="text-[10px] font-bold text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded-full uppercase tracking-widest leading-none">Auto-synced</span>
-            </h2>
-            
-            <div className="bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-5 md:p-6 flex flex-col gap-6 md:gap-8">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-white/5 pb-6">
-                <div className="space-y-1.5">
-                  <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Experiment: Morning Fasting</div>
-                  <h3 className="text-sm md:text-base font-bold text-white leading-relaxed">
-                    If I daily execution of specified behavior, then sleep hours will improve.
-                  </h3>
-                </div>
-                <span className="self-start md:self-auto text-[#8e9299] text-[10px] font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5 whitespace-nowrap">Day 12</span>
+          {!activeExperiment ? (
+            /* STATE A: No Active Experiment */
+            <div className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center">
+              <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mb-6 border border-white/10">
+                <Clock size={32} className="text-[#8e9299]" />
               </div>
-
-              <div className="flex flex-col gap-4">
-                <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">Did you complete this action?</label>
-                <div className="grid grid-cols-2 gap-3 md:gap-4">
-                  <button
-                    onClick={() => setCompleted('yes')}
-                    className={`flex items-center justify-center gap-2 py-3.5 rounded-xl border transition-all font-bold text-sm active:scale-95 ${
-                      completed === 'yes'
-                        ? 'bg-[#10b981] border-[#10b981] text-black'
-                        : completed === 'no'
-                        ? 'bg-white/5 border-white/5 text-[#8e9299]/30'
-                        : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <Check size={18} />
-                    <span>Yes</span>
-                  </button>
-                  <button
-                    onClick={() => setCompleted('no')}
-                    className={`flex items-center justify-center gap-2 py-3.5 rounded-xl border transition-all font-bold text-sm active:scale-95 ${
-                      completed === 'no'
-                        ? 'bg-[#ef4444] border-[#ef4444] text-white'
-                        : completed === 'yes'
-                        ? 'bg-white/5 border-white/5 text-[#8e9299]/30'
-                        : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <X size={18} />
-                    <span>No</span>
-                  </button>
+              <h2 className="text-xl font-bold text-white mb-3">No Active Experiment</h2>
+              <p className="text-[#8e9299] max-w-md mb-8 leading-relaxed">
+                You don't have an active experiment running. Start a conversation with Daniel to refine your next big idea.
+              </p>
+              <button 
+                onClick={() => navigate('/daniel')}
+                className="flex items-center gap-2 px-8 py-4 bg-white text-black rounded-2xl font-bold hover:bg-white/90 transition-all active:scale-95"
+              >
+                <span>Talk to Daniel</span>
+                <ArrowRight size={18} />
+              </button>
+            </div>
+          ) : isSubmitted ? (
+            /* STATE B: Already Logged Today */
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center"
+            >
+              <div className="w-24 h-24 bg-[#10b981]/10 rounded-full flex items-center justify-center mb-6 border border-[#10b981]/20">
+                <CheckCircle2 size={48} className="text-[#10b981]" />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Today's Log Complete</h2>
+              <p className="text-[#8e9299] max-w-md mb-10 leading-relaxed">
+                Great job! You've recorded your data for today. Consistency is the foundation of behavioral science.
+              </p>
+              
+              <div className="w-full max-w-sm bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-6 mb-8 text-left">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Progress</span>
+                  <span className="text-sm font-bold text-white">{activeExperiment.logs.length} / {activeExperiment.durationDays} Days</span>
+                </div>
+                <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    className="h-full bg-[#10b981]"
+                  />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">Anxiety level (1-10)</label>
-                <div className="relative">
-                  <select
-                    value={score}
-                    onChange={(e) => setScore(e.target.value)}
-                    className="w-full bg-[#1a1b1e]/60 border border-white/10 rounded-xl px-5 py-3.5 text-white appearance-none outline-none focus:border-[#C75F33]/50 transition-all cursor-pointer font-bold text-sm"
-                  >
-                    {[...Array(10)].map((_, i) => (
-                      <option key={i + 1} value={i + 1} className="bg-[#1a1b1e] text-white">
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none flex flex-col items-center text-[#8e9299] opacity-50">
-                    <ChevronUp size={12} className="-mb-1" />
-                    <ChevronDown size={12} />
+              <button 
+                onClick={() => navigate('/result')}
+                className="text-[#8e9299] hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
+              >
+                View Experiment Progress
+              </button>
+            </motion.div>
+          ) : (
+            /* STATE C: Ready to Log */
+            <div className="flex flex-col gap-6 md:gap-8 pb-12">
+              
+              {/* Progress Summary */}
+              <div className="bg-[#C75F33]/5 border border-[#C75F33]/20 rounded-2xl p-5 md:p-6 flex items-center justify-between">
+                <div>
+                  <div className="text-[10px] font-bold text-[#C75F33] uppercase tracking-widest mb-1">Experiment Progress</div>
+                  <div className="text-lg font-bold text-white leading-none">Day {activeExperiment.logs.length + 1} of {activeExperiment.durationDays}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest mb-1">Completion</div>
+                  <div className="text-lg font-bold text-white leading-none">{progressPercent}%</div>
+                </div>
+              </div>
+
+              {/* Global Daily Notes */}
+              <div className="bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-5 md:p-6">
+                <h2 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <MessageSquare size={18} className="text-[#8e9299]" />
+                  Daily Observations
+                </h2>
+                <textarea
+                  value={dailyNotes}
+                  onChange={(e) => setDailyNotes(e.target.value)}
+                  placeholder="Any significant events, mood shifts, or environmental changes today?"
+                  className="w-full h-24 bg-[#1a1b1e]/40 border border-white/10 rounded-xl p-4 text-white outline-none resize-none focus:border-[#C75F33]/50 transition-all text-sm placeholder:text-[#8e9299]/30"
+                />
+              </div>
+
+              {/* Active Experiment Metrics */}
+              <div className="space-y-4">
+                <h2 className="text-base md:text-lg font-bold text-white flex items-center gap-3 px-1">
+                  Active Protocol
+                  <span className="text-[10px] font-bold text-[#10b981] bg-[#10b981]/10 px-2 py-0.5 rounded-full uppercase tracking-widest leading-none">Verified</span>
+                </h2>
+                
+                <div className="bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-6 flex flex-col gap-8">
+                  <div className="space-y-2 border-b border-white/5 pb-6">
+                    <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest flex items-center gap-2">
+                       <Sparkles size={12} />
+                       Hypothesis
+                    </div>
+                    <h3 className="text-sm md:text-base font-bold text-white leading-relaxed italic opacity-90">
+                      "{activeExperiment.hypothesis}"
+                    </h3>
+                  </div>
+
+                  {/* Binary Completion */}
+                  <div className="flex flex-col gap-4">
+                    <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest flex items-center justify-between">
+                      Did you complete the action?
+                      {completed && <span className={`text-[10px] ${completed === 'yes' ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>{completed.toUpperCase()}</span>}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 md:gap-4">
+                      <button
+                        onClick={() => setCompleted('yes')}
+                        className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all font-bold text-sm active:scale-95 ${
+                          completed === 'yes'
+                            ? 'bg-[#10b981] border-[#10b981] text-black shadow-lg shadow-[#10b981]/20'
+                            : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10'
+                        }`}
+                      >
+                        <Check size={18} />
+                        <span>Yes</span>
+                      </button>
+                      <button
+                        onClick={() => setCompleted('no')}
+                        className={`flex items-center justify-center gap-2 py-4 rounded-xl border transition-all font-bold text-sm active:scale-95 ${
+                          completed === 'no'
+                            ? 'bg-[#ef4444] border-[#ef4444] text-white shadow-lg shadow-[#ef4444]/20'
+                            : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10'
+                        }`}
+                      >
+                        <X size={18} />
+                        <span>No</span>
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-[#8e9299] bg-white/5 p-3 rounded-lg border border-white/5">
+                      <span className="font-bold text-white">Action:</span> {activeExperiment.action}
+                    </div>
+                  </div>
+
+                  {/* Metric Score Slider */}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
+                        {activeExperiment.metric} Level
+                      </label>
+                      <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
+                        {score}
+                      </span>
+                    </div>
+                    <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
+                      <input
+                        type="range"
+                        min="1"
+                        max="10"
+                        step="1"
+                        value={score}
+                        onChange={(e) => setScore(parseInt(e.target.value))}
+                        className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] font-bold text-[#8e9299]/50 uppercase tracking-widest px-1">
+                      <span>Low</span>
+                      <span>Neutral</span>
+                      <span>High</span>
+                    </div>
+                  </div>
+
+                  {/* Experiment Specific Notes */}
+                  <div className="flex flex-col gap-4">
+                    <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">Protocol Notes</label>
+                    <input
+                      type="text"
+                      value={experimentNotes}
+                      onChange={(e) => setExperimentNotes(e.target.value)}
+                      placeholder="Specific observations related to this hypothesis..."
+                      className="w-full bg-[#1a1b1e]/60 border border-white/10 rounded-xl px-5 py-4 text-white outline-none focus:border-[#C75F33]/50 transition-all text-sm placeholder:text-[#8e9299]/30"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">Experiment Notes (Optional)</label>
-                <input
-                  type="text"
-                  value={experimentNotes}
-                  onChange={(e) => setExperimentNotes(e.target.value)}
-                  placeholder="Additional observations..."
-                  className="w-full bg-[#1a1b1e]/60 border border-white/10 rounded-xl px-5 py-3.5 text-white outline-none focus:border-[#C75F33]/50 transition-all text-sm placeholder:text-[#8e9299]/30"
-                />
-              </div>
+              {/* Submit Button */}
+              <button 
+                onClick={handleSubmit}
+                disabled={!completed}
+                className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all transform active:scale-[0.98] shadow-2xl ${
+                  completed 
+                    ? 'bg-white text-black hover:bg-[#C75F33] hover:text-white shadow-black/20' 
+                    : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
+                }`}
+              >
+                {completed ? 'Submit Daily Log' : 'Complete Action to Log'}
+              </button>
             </div>
-          </div>
-        </div>
+          )}
 
-        <button className="w-full mt-8 py-4.5 bg-white text-black rounded-xl font-black text-sm uppercase tracking-widest hover:bg-[#C75F33] hover:text-white transition-all transform active:scale-[0.98] shadow-2xl shadow-black/20">
-          Submit Daily Log
-        </button>
+        </div>
 
         {/* Subscription Lock Overlay */}
         {!isSubscribed && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-[#0f1014]/40 rounded-2xl p-4">
-            <div className="bg-[#1a1b1e] border border-white/10 p-8 md:p-10 rounded-3xl max-w-sm w-full text-center shadow-2xl animate-in fade-in zoom-in duration-300">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-[#C75F33]/20 rounded-full flex items-center justify-center text-[#C75F33] mx-auto mb-6 md:mb-8 ring-8 ring-[#C75F33]/5">
-                <Lock size={32} className="md:w-10 md:h-10" />
-              </div>
-              <h2 className="text-xl md:text-2xl font-bold text-white mb-3 tracking-tight">Unlock Daily Logs</h2>
-              <p className="text-[#8e9299] text-sm mb-8 leading-relaxed font-medium">
-                Consistency is key. Log your results every day to gather evidence and complete your experiments.
-              </p>
-              <Link 
-                to="/subscription" 
-                className="block w-full py-4 bg-white text-black rounded-xl font-bold hover:bg-[#C75F33] hover:text-white transition-all transform active:scale-95 text-sm"
-              >
-                Start Subscription
-              </Link>
-            </div>
-          </div>
+          <FeatureLock 
+            title="Unlock Daily Logs"
+            description="Consistency is key. Log your results every day to gather evidence and complete your experiments."
+            icon={Clock}
+          />
         )}
-      </div>
       </div>
     </DashboardLayout>
   );

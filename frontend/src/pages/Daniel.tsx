@@ -16,6 +16,7 @@ import {
 import { useNavigate, Link } from 'react-router-dom';
 import { useAccess } from '../components/AccessContext';
 import { useChat } from '../components/ChatContext';
+import { FeatureLock } from '../components/FeatureLock';
 
 const SUGGESTIONS = [
   { icon: <Brain size={16} />, text: "I believe I work better at night." },
@@ -147,7 +148,7 @@ export const Daniel = () => {
 
   return (
     <DashboardLayout noPadding>
-      <div className="flex flex-col flex-1 h-full min-h-0 relative">
+      <div className={`flex flex-col flex-1 min-h-0 relative ${!isSubscribed ? 'h-full overflow-hidden' : 'h-full'}`}>
         {/* Main Content Centered Container */}
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-8 md:py-20 flex flex-col min-h-full">
@@ -268,15 +269,11 @@ export const Daniel = () => {
 
         {/* Subscription Lock Overlay */}
         {!isSubscribed && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-xl bg-[#0f1014]/40 p-4 md:p-6">
-            <div className="bg-[#1a1b1e] border border-white/10 p-8 md:p-12 rounded-[32px] md:rounded-[48px] max-w-lg w-full text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] animate-in fade-in zoom-in duration-700 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#C75F33] to-transparent" />
-              <div className="w-20 h-20 md:w-28 md:h-28 bg-[#C75F33]/20 rounded-full flex items-center justify-center text-[#C75F33] mx-auto mb-6 md:mb-10 ring-[8px] md:ring-[12px] ring-[#C75F33]/5 animate-pulse"><Lock size={40} className="md:w-14 md:h-14" /></div>
-              <h2 className="text-2xl md:text-4xl font-bold text-white mb-4 md:mb-6 tracking-tight">Unlock Your Strategist</h2>
-              <p className="text-[#8e9299] mb-8 md:mb-12 leading-relaxed text-sm md:text-lg font-medium px-2 md:px-4">Experience the full power of Daniel's behavioral optimization. Upgrade now to build and track live experiments.</p>
-              <Link to="/subscription" className="group relative block w-full py-4 md:py-6 bg-white text-black rounded-2xl md:rounded-3xl font-bold hover:bg-[#C75F33] hover:text-white transition-all transform hover:scale-[1.02] active:scale-95 shadow-2xl overflow-hidden shadow-white/5"><span className="relative z-10 text-base md:text-xl tracking-tight">Get Full Access</span></Link>
-            </div>
-          </div>
+          <FeatureLock 
+            title="Unlock Your Strategist"
+            description="Experience the full power of Daniel's behavioral optimization. Upgrade now to build and track live experiments."
+            icon={Sparkles}
+          />
         )}
       </div>
     </DashboardLayout>
