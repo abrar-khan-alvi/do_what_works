@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X } from 'lucide-react';
+import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X, Lock } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
 import { useChat } from './ChatContext';
@@ -27,6 +27,10 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
   const profileRef = useRef<HTMLDivElement>(null);
 
   const handleSessionClick = (id: string) => {
+    if (!isSubscribed) {
+      navigate('/subscription');
+      return;
+    }
     setCurrentSessionId(id);
     setIsSidebarOpen(false); // Close sidebar on mobile when a session is clicked
     if (location.pathname !== '/daniel') {
@@ -35,6 +39,10 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
   };
 
   const handleNewChat = () => {
+    if (!isSubscribed) {
+      navigate('/subscription');
+      return;
+    }
     createNewSession();
     setIsSidebarOpen(false);
     if (location.pathname !== '/daniel') {
@@ -92,21 +100,25 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
       `}>
         {/* Sidebar Header (Fixed) */}
         <div className="p-6 flex flex-col gap-6 flex-shrink-0">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center relative">
             <Logo />
             <button 
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden text-[#8e9299] hover:text-white"
+              className="lg:hidden absolute right-0 text-[#8e9299] hover:text-white"
             >
               <X size={20} />
             </button>
           </div>
           <button
             onClick={handleNewChat}
-            className="flex items-center justify-center gap-2 py-3 bg-white text-black rounded-xl font-bold hover:bg-white/90 transition-all active:scale-95 shadow-lg shadow-white/5"
+            className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-white/5 ${
+              isSubscribed 
+                ? 'bg-white text-black hover:bg-white/90' 
+                : 'bg-white/5 text-[#8e9299] border border-white/10 hover:bg-white/10'
+            }`}
           >
-            <Plus size={18} />
-            <span>New Strategist</span>
+            {isSubscribed ? <Plus size={18} /> : <Lock size={16} className="text-[#C75F33]" />}
+            <span>{isSubscribed ? 'New Strategist' : 'Upgrade Strategist'}</span>
           </button>
         </div>
 
@@ -156,7 +168,10 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                 >
                   <MessageSquare size={14} className={currentSessionId === s.id && location.pathname === '/daniel' ? 'text-white' : 'text-[#8e9299] flex-shrink-0'} />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate leading-tight">{s.title || 'New Chat'}</div>
+                    <div className="text-sm font-medium truncate leading-tight flex items-center gap-2">
+                      {s.title || 'New Chat'}
+                      {!isSubscribed && <Lock size={10} className="text-[#C75F33]/50" />}
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
@@ -286,14 +301,20 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
                   <div className="px-2 flex flex-col gap-1">
                     <button
-                      onClick={() => setShowProfileMenu(false)}
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/profile');
+                      }}
                       className="w-full text-left px-3 py-2 text-sm text-[#8e9299] hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
                       <User size={16} />
                       Profile Settings
                     </button>
                     <button
-                      onClick={() => setShowProfileMenu(false)}
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        navigate('/preferences');
+                      }}
                       className="w-full text-left px-3 py-2 text-sm text-[#8e9299] hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
                       <Settings size={16} />

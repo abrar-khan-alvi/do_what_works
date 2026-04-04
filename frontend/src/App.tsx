@@ -13,6 +13,8 @@ import { Result } from './pages/Result';
 import { DailyLog } from './pages/DailyLog';
 import { ExperimentDetails } from './pages/ExperimentDetails';
 import { Subscription } from './pages/Subscription';
+import { Profile } from './pages/Profile';
+import { Preferences } from './pages/Preferences';
 import { AccessProvider } from './components/AccessContext';
 import { ChatProvider } from './components/ChatContext';
 import { ExperimentProvider } from './components/ExperimentContext';
@@ -34,6 +36,8 @@ export default function App() {
           <Route path="/daily-log" element={<DailyLog />} />
           <Route path="/subscription" element={<Subscription />} />
           <Route path="/history" element={<Navigate to="/result" replace />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/preferences" element={<Preferences />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-const steps = [
+export const steps = [
   {
     id: 1,
     title: "Control",
@@ -110,7 +110,7 @@ const steps = [
   }
 ];
 
-const options = [
+export const options = [
   'Strongly Disagree',
   'Disagree',
   'Neutral',
@@ -123,8 +123,18 @@ export const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
-  // Initialize first option for all questions on mount
+  // Initialize answers from localStorage or default
   useEffect(() => {
+    const saved = localStorage.getItem('user_onboarding_data');
+    if (saved) {
+      try {
+        setAnswers(JSON.parse(saved));
+        return;
+      } catch (e) {
+        console.error('Failed to parse saved onboarding data', e);
+      }
+    }
+
     const initialAnswers: Record<string, number> = {};
     steps.forEach((step) => {
       step.questions.forEach((q) => {
@@ -146,7 +156,8 @@ export const Onboarding = () => {
       setCurrentStep(prev => prev + 1);
       window.scrollTo(0, 0);
     } else {
-      // Finish onboarding
+      // Save data and finish onboarding
+      localStorage.setItem('user_onboarding_data', JSON.stringify(answers));
       navigate('/daniel');
     }
   };
