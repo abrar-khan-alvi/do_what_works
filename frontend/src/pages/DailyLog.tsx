@@ -48,6 +48,8 @@ export const DailyLog = () => {
     ? Math.round(((activeExperiment.logs.length) / activeExperiment.durationDays) * 100) 
     : 0;
 
+  const isFullyComplete = activeExperiment && activeExperiment.logs.length >= activeExperiment.durationDays;
+
   return (
     <DashboardLayout noPadding>
       <div className={`w-full flex-1 flex flex-col relative min-h-0 p-4 md:p-8 ${!isSubscribed ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
@@ -86,34 +88,55 @@ export const DailyLog = () => {
               animate={{ opacity: 1, y: 0 }}
               className="flex-1 flex flex-col items-center justify-center py-12 px-4 text-center"
             >
-              <div className="w-24 h-24 bg-[#10b981]/10 rounded-full flex items-center justify-center mb-6 border border-[#10b981]/20">
-                <CheckCircle2 size={48} className="text-[#10b981]" />
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 border transition-colors ${
+                isFullyComplete 
+                  ? 'bg-[#10b981]/10 border-[#10b981]/20' 
+                  : 'bg-[#C75F33]/10 border-[#C75F33]/20'
+              }`}>
+                {isFullyComplete ? (
+                  <Sparkles size={48} className="text-[#10b981]" />
+                ) : (
+                  <CheckCircle2 size={48} className="text-[#C75F33]" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Today's Log Complete</h2>
-              <p className="text-[#8e9299] max-w-md mb-10 leading-relaxed">
-                Great job! You've recorded your data for today. Consistency is the foundation of behavioral science.
+              <h2 className="text-2xl font-bold text-white mb-3">
+                {isFullyComplete ? 'Protocol Strategy Complete' : "Today's Log Recorded"}
+              </h2>
+              <p className="text-[#8e9299] max-w-md mb-10 leading-relaxed font-medium">
+                {isFullyComplete 
+                  ? "Final data point gathered. Your evidence is now ready for a full behavioral analysis."
+                  : "Great job! You've recorded your data for today. Consistency is the foundation of behavioral science."
+                }
               </p>
               
               <div className="w-full max-w-sm bg-[#1a1b1e]/40 border border-white/10 rounded-2xl p-6 mb-8 text-left">
-                <div className="flex justify-between items-end mb-2">
-                  <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Progress</span>
+                <div className="flex justify-between items-end mb-3">
+                  <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Evidence Gathered</span>
                   <span className="text-sm font-bold text-white">{activeExperiment.logs.length} / {activeExperiment.durationDays} Days</span>
                 </div>
                 <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercent}%` }}
-                    className="h-full bg-[#10b981]"
+                    className={`h-full ${isFullyComplete ? 'bg-[#10b981]' : 'bg-[#C75F33]'}`}
                   />
                 </div>
               </div>
 
-              <button 
-                onClick={() => navigate('/result')}
-                className="text-[#8e9299] hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
-              >
-                View Experiment Progress
-              </button>
+              <div className="flex flex-col gap-4">
+                <button 
+                  onClick={() => navigate('/overview')}
+                  className="px-8 py-4 bg-white text-black rounded-2xl font-bold hover:bg-[#C75F33] hover:text-white transition-all active:scale-95"
+                >
+                  {isFullyComplete ? 'Go to Final Assessment' : 'Back to Dashboard'}
+                </button>
+                <button 
+                  onClick={() => navigate('/result')}
+                  className="text-[#8e9299] hover:text-white transition-colors text-xs font-bold uppercase tracking-widest pt-2"
+                >
+                  View Historical Logs
+                </button>
+              </div>
             </motion.div>
           ) : (
             /* STATE C: Ready to Log */

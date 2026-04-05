@@ -17,6 +17,7 @@ import { Subscription } from './pages/Subscription';
 import { Profile } from './pages/Profile';
 import { Preferences } from './pages/Preferences';
 import { LandingPage } from './pages/LandingPage';
+import { Overview } from './pages/Overview';
 import { AccessProvider } from './components/AccessContext';
 import { ChatProvider } from './components/ChatContext';
 import { ExperimentProvider } from './components/ExperimentContext';
@@ -43,7 +44,7 @@ const PrivateRoute = ({ children, skipOnboardingCheck = false }: { children: Rea
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) return <LoadingScreen />;
-  return !isAuthenticated ? <>{children}</> : <Navigate to="/daniel" replace />;
+  return !isAuthenticated ? <>{children}</> : <Navigate to="/overview" replace />;
 };
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
               <Routes>
                 {/* Public auth routes */}
                 <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+                <Route path="/overview" element={<PrivateRoute><Overview /></PrivateRoute>} />
                 <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                 <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
                 <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />

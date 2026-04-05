@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X, Lock } from 'lucide-react';
+import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X, Lock, Brain } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
 import { useAuth } from './AuthContext';
@@ -76,6 +76,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
   }, [location.pathname]);
 
   const navItems = [
+    { name: 'Overview', path: '/overview', icon: Brain },
     { name: 'Daniel', path: '/daniel', icon: MessageCircle },
     { name: 'Result', path: '/result', icon: Folder },
     { name: 'Daily Log', path: '/daily-log', icon: Calendar },
