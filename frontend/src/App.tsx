@@ -16,6 +16,7 @@ import { ExperimentDetails } from './pages/ExperimentDetails';
 import { Subscription } from './pages/Subscription';
 import { Profile } from './pages/Profile';
 import { Preferences } from './pages/Preferences';
+import { LandingPage } from './pages/LandingPage';
 import { AccessProvider } from './components/AccessContext';
 import { ChatProvider } from './components/ChatContext';
 import { ExperimentProvider } from './components/ExperimentContext';
@@ -54,7 +55,7 @@ export default function App() {
             <BrowserRouter>
               <Routes>
                 {/* Public auth routes */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
                 <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
                 <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
                 <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />

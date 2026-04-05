@@ -24,6 +24,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -290,10 +291,11 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                   <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">{user?.username || 'User'}</div>
                   <div className="text-xs text-[#8e9299]">{user?.email || ''}</div>
                 </div>
-                {user?.profile_photo ? (
+                {user?.profile_photo && !profileImageError ? (
                   <img
                     src={user.profile_photo}
                     alt="Profile"
+                    onError={() => setProfileImageError(true)}
                     className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 object-cover"
                   />
                 ) : (
