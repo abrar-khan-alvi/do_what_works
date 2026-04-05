@@ -7,14 +7,30 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+let isRedirecting = false;
+
 // Attach access token to every request
 api.interceptors.request.use((config) => {
+  if (isRedirecting) {
+    return Promise.reject(new axios.Cancel('Redirect in progress'));
+  }
   const token = localStorage.getItem('access_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+const handleAuthFailure = () => {
+  if (isRedirecting) return;
+  isRedirecting = true;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('auth_user');
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+};
 
 // On 401, try to silently refresh the token
 api.interceptors.response.use(
@@ -24,12 +40,7 @@ api.interceptors.response.use(
 
     // Avoid infinite loops if the refresh request itself fails
     if (originalRequest.url?.includes('/auth/token/refresh/')) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('auth_user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      handleAuthFailure();
       return Promise.reject(error);
     }
 
@@ -47,19 +58,10 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return api(originalRequest);
         } catch (refreshErr) {
-          // Refresh failed — force logout and stop loops
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
-          localStorage.removeItem('auth_user');
-          if (window.location.pathname !== '/login') {
-            window.location.href = '/login';
-          }
+          handleAuthFailure();
         }
       } else {
-        localStorage.removeItem('access_token');
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
+        handleAuthFailure();
       }
     }
 

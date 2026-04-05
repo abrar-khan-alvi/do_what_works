@@ -31,7 +31,7 @@ class Experiment(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='experiments')
     hypothesis = models.TextField()
     action = models.TextField()
-    metric = models.CharField(max_length=100)
+    metric = models.CharField(max_length=500)
     duration_days = models.PositiveIntegerField()
     start_date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')

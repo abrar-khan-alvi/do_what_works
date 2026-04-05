@@ -67,7 +67,7 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Fetch all experiments on mount when authenticated
   const fetchExperiments = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !localStorage.getItem('access_token')) return;
     setIsLoading(true);
     try {
       const res = await api.get('/api/v1/experiments/');

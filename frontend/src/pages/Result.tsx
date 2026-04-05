@@ -59,7 +59,7 @@ export const Result = () => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl border border-white/5 self-start overflow-x-auto no-scrollbar max-w-full">
+          <div className="flex items-center gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl border border-white/5 self-start overflow-x-auto overflow-y-hidden no-scrollbar max-w-full">
             {tabs.map(tab => (
               <button
                 key={tab.id}

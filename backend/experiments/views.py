@@ -56,21 +56,25 @@ class ChatSessionDetailView(APIView):
         return Response(serializer.data)
 
     def patch(self, request, pk):
-        session = self._get_session(pk, request.user)
-        if not session:
+        from django.db import transaction
+        
+        try:
+            with transaction.atomic():
+                session = ChatSession.objects.select_for_update().get(pk=pk, user=request.user)
+                
+                # Can update title or messages
+                title = request.data.get('title', '').strip()
+                if title:
+                    session.title = title[:100]
+                
+                messages = request.data.get('messages')
+                if messages is not None:
+                    session.messages = messages
+                
+                session.save()
+                return Response(ChatSessionDetailSerializer(session).data)
+        except ChatSession.DoesNotExist:
             return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Can update title or messages
-        title = request.data.get('title', '').strip()
-        if title:
-            session.title = title[:100]
-        
-        messages = request.data.get('messages')
-        if messages is not None:
-            session.messages = messages
-        
-        session.save()
-        return Response(ChatSessionDetailSerializer(session).data)
 
     def delete(self, request, pk):
         session = self._get_session(pk, request.user)
@@ -134,21 +138,35 @@ class ExperimentListCreateView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        from django.db import transaction
         serializer = ExperimentCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Validation failed", "details": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Check if an active experiment already exists
-        has_active = Experiment.objects.filter(user=request.user, status='active').exists()
-        
-        # If active exists, the new one is queued. If not, it's active.
-        status_val = 'active' if not has_active else 'queued'
-        
-        experiment = serializer.save(user=request.user, status=status_val)
-        return Response(
-            ExperimentDetailSerializer(experiment).data,
-            status=status.HTTP_201_CREATED
-        )
+        try:
+            with transaction.atomic():
+                # On SQLite, atomic is enough for serializable checks
+                # Check for active experiment
+                has_active = Experiment.objects.filter(
+                    user=request.user, status='active'
+                ).exists()
+                
+                # Determine initial status
+                status_val = 'active' if not has_active else 'queued'
+                print(f"DEBUG: ASSIGNING STATUS: {status_val}")
+                
+                experiment = serializer.save(user=request.user, status=status_val)
+                
+                return Response(
+                    ExperimentDetailSerializer(experiment).data,
+                    status=status.HTTP_201_CREATED
+                )
+        except Exception as e:
+            print(f"DEBUG: EXCEPTION DURING SAVE: {str(e)}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ExperimentDetailView(APIView):
@@ -247,16 +265,6 @@ class DailyLogView(APIView):
         if total_logs >= experiment.duration_days:
             experiment.status = 'completed'
             experiment.save()
-            
-            # AUTO-SUCCESSION: Find the next queued experiment and activate it
-            next_queued = Experiment.objects.filter(
-                user=request.user, status='queued'
-            ).order_by('created_at').first()
-            
-            if next_queued:
-                next_queued.status = 'active'
-                next_queued.save()
-
         return Response(
             DailyLogSerializer(log).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK

@@ -30,7 +30,7 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Fetch subscription status when authenticated
   useEffect(() => {
-    if (!isAuthenticated || initialized.current) return;
+    if (!isAuthenticated || initialized.current || !localStorage.getItem('access_token')) return;
     initialized.current = true;
     api.get('/api/v1/auth/subscription/')
       .then(res => applySubscriptionData(res.data))

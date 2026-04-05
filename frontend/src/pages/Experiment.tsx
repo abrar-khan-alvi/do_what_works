@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
-import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Sparkles, History } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useExperiments } from '../components/ExperimentContext';
 
@@ -14,9 +14,10 @@ const predefinedMetrics = [
 export const Experiment = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { launchExperiment } = useExperiments();
+  const { experiments, launchExperiment } = useExperiments();
   const [currentStep, setCurrentStep] = useState(0);
   
+  const hasActiveExperiment = experiments.some(e => e.status === 'active');
   const proposalData = location.state?.proposalData;
 
   const [hypothesis, setHypothesis] = useState(proposalData?.hypothesis || 'If I daily execution of specified behavior, then sleep hours will improve');
@@ -49,17 +50,24 @@ export const Experiment = () => {
     }
   };
 
-  const handleLaunch = () => {
+  const [isLaunching, setIsLaunching] = useState(false);
+  const handleLaunch = async () => {
     const durationNum = parseInt(duration.replace(/[^0-9]/g, '')) || 7;
     
-    launchExperiment({
-      hypothesis,
-      action,
-      metric: metric === 'Custom' ? customMetric : metric,
-      durationDays: durationNum,
-    });
-    
-    navigate('/result');
+    setIsLaunching(true);
+    try {
+      await launchExperiment({
+        hypothesis,
+        action,
+        metric: metric === 'Custom' ? customMetric : metric,
+        durationDays: durationNum,
+      });
+      navigate('/result');
+    } catch (err) {
+      console.error('Launch failed', err);
+    } finally {
+      setIsLaunching(false);
+    }
   };
 
   return (
@@ -249,7 +257,9 @@ export const Experiment = () => {
             <button
               onClick={handleNext}
               disabled={
-                (currentStep === 2 && !metric && !customMetric) ||
+                (currentStep === 0 && !hypothesis.trim()) ||
+                (currentStep === 1 && !action.trim()) ||
+                (currentStep === 2 && (!metric || (metric === 'Custom' && !customMetric.trim()))) ||
                 (currentStep === 3 && !duration)
               }
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
@@ -260,10 +270,22 @@ export const Experiment = () => {
           ) : (
             <button
               onClick={handleLaunch}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors"
+              disabled={
+                isLaunching || 
+                !hypothesis.trim() || 
+                !action.trim() || 
+                (!metric || (metric === 'Custom' && !customMetric.trim()))
+              }
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors shadow-2xl shadow-white/5 disabled:opacity-30 disabled:cursor-not-allowed min-w-[160px] justify-center"
             >
-              <span>Launch Experiment</span>
-              <ArrowRight size={18} />
+              {isLaunching ? (
+                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{hasActiveExperiment ? 'Add to Queue' : 'Launch Experiment'}</span>
+                  {hasActiveExperiment ? <History size={18} /> : <ArrowRight size={18} />}
+                </>
+              )}
             </button>
           )}
         </div>

@@ -62,7 +62,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch all sessions on mount when authenticated
   const fetchSessions = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !localStorage.getItem('access_token')) return;
     setIsLoading(true);
     setHasError(false);
     try {
@@ -110,7 +110,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Auto-create a session if list is empty after load
   useEffect(() => {
-    if (!isLoading && isAuthenticated && sessions.length === 0 && fetchAttempted.current && !hasError) {
+    if (!isLoading && isAuthenticated && localStorage.getItem('access_token') && sessions.length === 0 && fetchAttempted.current && !hasError) {
       createNewSession().catch(() => {});
     }
   }, [isLoading, isAuthenticated, sessions.length, createNewSession, hasError]);
@@ -174,12 +174,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const updateSessionTitle = useCallback((sessionId: string, title: string) => {
+  const updateSessionTitle = useCallback(async (sessionId: string, title: string) => {
     const truncated = title.substring(0, 50);
     setSessions(prev => prev.map(s =>
       s.id === sessionId ? { ...s, title: truncated } : s
     ));
-    api.patch(`/api/v1/chat/sessions/${sessionId}/`, { title: truncated }).catch(() => {});
+    try {
+      await api.patch(`/api/v1/chat/sessions/${sessionId}/`, { title: truncated });
+    } catch { /* ignored */ }
   }, []);
 
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
