@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FlaskConical, Calendar, Folder, LogOut, Bell, ChevronDown, User, Settings, CreditCard, Plus, MessageSquare, Trash2, Menu, X, Lock } from 'lucide-react';
 import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
+import { useAuth } from './AuthContext';
 import { useChat } from './ChatContext';
 
 interface DashboardLayoutProps {
@@ -15,6 +16,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sidebarBottomExtra, noPadding }: DashboardLayoutProps) => {
   const { isSubscribed, daysRemaining } = useAccess();
+  const { user, logout } = useAuth();
   const { sessions, currentSessionId, setCurrentSessionId, createNewSession, deleteSession } = useChat();
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,22 +33,23 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
       navigate('/subscription');
       return;
     }
+    // Set current session in context AND navigate to its unique URL
     setCurrentSessionId(id);
-    setIsSidebarOpen(false); // Close sidebar on mobile when a session is clicked
-    if (location.pathname !== '/daniel') {
-      navigate('/daniel');
-    }
+    setIsSidebarOpen(false);
+    navigate(`/daniel/${id}`);
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     if (!isSubscribed) {
       navigate('/subscription');
       return;
     }
-    createNewSession();
-    setIsSidebarOpen(false);
-    if (location.pathname !== '/daniel') {
-      navigate('/daniel');
+    try {
+      const newId = await createNewSession();
+      setIsSidebarOpen(false);
+      navigate(`/daniel/${newId}`);
+    } catch (err) {
+      console.error('Failed to start new chat:', err);
     }
   };
 
@@ -207,7 +210,10 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
             </div>
           </div>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-white/10 text-[#e53935] hover:bg-white/5 transition-all active:scale-95 text-sm font-medium"
           >
             <LogOut size={18} />
@@ -281,22 +287,28 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                 className="flex items-center gap-2 md:gap-3 cursor-pointer group"
               >
                 <div className="text-right hidden sm:block">
-                  <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">Dr. Jon Kabir</div>
-                  <div className="text-xs text-[#8e9299]">User</div>
+                  <div className="text-sm font-medium text-white group-hover:text-white/90 transition-colors">{user?.username || 'User'}</div>
+                  <div className="text-xs text-[#8e9299]">{user?.email || ''}</div>
                 </div>
-                <img
-                  src="https://i.pravatar.cc/150?u=jon"
-                  alt="Profile"
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10"
-                />
+                {user?.profile_photo ? (
+                  <img
+                    src={user.profile_photo}
+                    alt="Profile"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 object-cover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 bg-[#C75F33]/20 flex items-center justify-center text-[#C75F33] font-bold uppercase flex-shrink-0">
+                    {user?.username?.[0] || '?'}
+                  </div>
+                )}
                 <ChevronDown size={14} className={`text-[#8e9299] group-hover:text-white transition-all duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
               </div>
 
               {showProfileMenu && (
                 <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-64 bg-[#1a1b1e]/95 border border-white/10 rounded-2xl shadow-2xl py-2 z-[60] backdrop-blur-xl">
                   <div className="px-4 py-3 border-b border-white/5 mb-2">
-                    <div className="text-sm font-medium text-white">Dr. Jon Kabir</div>
-                    <div className="text-xs text-[#8e9299]">jon.kabir@example.com</div>
+                    <div className="text-sm font-medium text-white">{user?.username || 'User'}</div>
+                    <div className="text-xs text-[#8e9299]">{user?.email || ''}</div>
                   </div>
 
                   <div className="px-2 flex flex-col gap-1">
@@ -324,7 +336,11 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
 
                   <div className="px-2 mt-2 pt-2 border-t border-white/5">
                     <button
-                      onClick={() => navigate('/login')}
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        logout();
+                        navigate('/login');
+                      }}
                       className="w-full text-left px-3 py-2 text-sm text-[#e53935] hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                     >
                       <LogOut size={16} />

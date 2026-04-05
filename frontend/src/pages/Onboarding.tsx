@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { api } from '../services/api';
+import { useAuth } from '../components/AuthContext';
 
 export const steps = [
   {
@@ -120,8 +122,10 @@ export const options = [
 
 export const Onboarding = () => {
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize answers from localStorage or default
   useEffect(() => {
@@ -151,14 +155,27 @@ export const Onboarding = () => {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(prev => prev + 1);
       window.scrollTo(0, 0);
     } else {
-      // Save data and finish onboarding
-      localStorage.setItem('user_onboarding_data', JSON.stringify(answers));
-      navigate('/daniel');
+      // Last step — submit to backend
+      setIsSubmitting(true);
+      try {
+        await api.post('/api/v1/auth/onboarding/', { answers });
+        // Also save to localStorage as local cache for offline Preferences display
+        localStorage.setItem('user_onboarding_data', JSON.stringify(answers));
+        // Refresh user so has_completed_onboarding becomes true in AuthContext
+        await refreshUser();
+        navigate('/daniel');
+      } catch (err) {
+        console.error('Failed to save onboarding data:', err);
+        // Fallback: still navigate so users aren't blocked
+        navigate('/daniel');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -295,10 +312,13 @@ export const Onboarding = () => {
               
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-3.5 rounded-xl bg-white text-black hover:bg-white/90 transition-all font-bold active:scale-95 shadow-xl shadow-white/5"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-3.5 rounded-xl bg-white text-black hover:bg-white/90 transition-all font-bold active:scale-95 shadow-xl shadow-white/5 disabled:opacity-70"
               >
-                <span className="text-sm md:text-base">Next</span>
-                <ArrowRight size={18} />
+                <span className="text-sm md:text-base">
+                  {isSubmitting ? 'Saving...' : currentStep === steps.length - 1 ? 'Finish' : 'Next'}
+                </span>
+                {!isSubmitting && <ArrowRight size={18} />}
               </button>
             </div>
           </div>

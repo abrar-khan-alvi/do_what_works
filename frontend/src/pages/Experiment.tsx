@@ -248,7 +248,11 @@ export const Experiment = () => {
           {currentStep < 4 ? (
             <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors"
+              disabled={
+                (currentStep === 2 && !metric && !customMetric) ||
+                (currentStep === 3 && !duration)
+              }
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white text-black hover:bg-white/90 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <span>Next</span>
               <ArrowRight size={18} />

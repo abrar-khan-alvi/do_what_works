@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { api } from '../services/api';
+import { useAuth } from './AuthContext';
 
 export type Message = {
   id: string;
@@ -25,73 +27,95 @@ interface ChatContextType {
   sessions: Session[];
   currentSessionId: string | null;
   currentSession: Session | null;
+  isLoading: boolean;
   setCurrentSessionId: (id: string | null) => void;
-  createNewSession: () => string;
-  deleteSession: (id: string) => void;
-  addMessage: (sessionId: string, message: Message) => void;
+  createNewSession: () => Promise<string>;
+  deleteSession: (id: string) => Promise<void>;
+  addMessage: (sessionId: string, message: Message) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+/** Map API response to internal Session shape */
+const mapApiSession = (s: any): Session => ({
+  id: String(s.id),
+  title: s.title || 'New Conversation',
+  updatedAt: new Date(s.updated_at || Date.now()).getTime(),
+  messages: (s.messages || []).map((m: any, idx: number) => ({
+    id: m.id || String(idx),
+    sender: m.sender as 'user' | 'daniel',
+    text: m.text,
+    timestamp: new Date(m.timestamp).getTime(),
+    isProposal: m.is_proposal,
+    proposalData: m.proposal_data || undefined,
+  })),
+});
+
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sessions, setSessions] = useState<Session[]>(() => {
-    const saved = localStorage.getItem('daniel_chat_sessions');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed.map((s: any) => ({
-          ...s,
-          updatedAt: s.updatedAt || Date.now(),
-          messages: (s.messages || []).map((m: any) => ({
-            ...m,
-            timestamp: m.timestamp || Date.now()
-          }))
-        }));
-      } catch (e) {
-        console.error('Failed to parse chat sessions', e);
-        return [];
-      }
-    }
-    return [];
-  });
+  const { isAuthenticated } = useAuth();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const fetchAttempted = useRef(false);
 
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(() => {
-    const saved = localStorage.getItem('daniel_current_session_id');
-    if (saved && sessions.some(s => s.id === saved)) return saved;
-    return sessions.length > 0 ? sessions[0].id : null;
-  });
+  // Fetch all sessions on mount when authenticated
+  const fetchSessions = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const res = await api.get('/api/v1/chat/sessions/');
+      const mapped = res.data.map(mapApiSession);
+      setSessions(mapped);
+      // Removed auto-select here, will be handled by Daniel page params
+    } catch (err) {
+      console.error('Failed to fetch chat sessions:', err);
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
+      fetchAttempted.current = true;
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
-    localStorage.setItem('daniel_chat_sessions', JSON.stringify(sessions));
-  }, [sessions]);
-
-  useEffect(() => {
-    if (currentSessionId) {
-      localStorage.setItem('daniel_current_session_id', currentSessionId);
+    if (isAuthenticated && !fetchAttempted.current) {
+      fetchSessions();
     }
-  }, [currentSessionId]);
+  }, [isAuthenticated, fetchSessions]);
 
-  const createNewSession = useCallback(() => {
-    const newId = `session_${Math.random().toString(36).substring(7)}`;
-    const newSession: Session = {
-      id: newId,
-      title: 'New Conversation',
-      messages: [],
-      updatedAt: Date.now()
-    };
-    setSessions(prev => [newSession, ...prev]);
-    setCurrentSessionId(newId);
-    return newId;
+  // Reset on logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setSessions([]);
+      setCurrentSessionId(null);
+      fetchAttempted.current = false;
+      setHasError(false);
+    }
+  }, [isAuthenticated]);
+
+  const createNewSession = useCallback(async (): Promise<string> => {
+    try {
+      const res = await api.post('/api/v1/chat/sessions/', { title: 'New Conversation' });
+      const newSession = mapApiSession(res.data);
+      setSessions(prev => [newSession, ...prev]);
+      setCurrentSessionId(newSession.id);
+      return newSession.id;
+    } catch (err) {
+      console.error('Failed to create new session:', err);
+      throw err;
+    }
   }, []);
 
+  // Auto-create a session if list is empty after load
   useEffect(() => {
-    if (sessions.length === 0) {
-      createNewSession();
+    if (!isLoading && isAuthenticated && sessions.length === 0 && fetchAttempted.current && !hasError) {
+      createNewSession().catch(() => {});
     }
-  }, [sessions, createNewSession]);
+  }, [isLoading, isAuthenticated, sessions.length, createNewSession, hasError]);
 
-  const deleteSession = useCallback((id: string) => {
+  const deleteSession = useCallback(async (id: string) => {
     setSessions(prev => {
       const updated = prev.filter(s => s.id !== id);
       if (currentSessionId === id) {
@@ -99,42 +123,78 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return updated;
     });
+    try {
+      await api.delete(`/api/v1/chat/sessions/${id}/`);
+    } catch { /* ignored */ }
   }, [currentSessionId]);
 
-  const addMessage = useCallback((sessionId: string, message: Message) => {
+  const addMessage = useCallback(async (sessionId: string, message: Message) => {
+    // Generate an optimistic "temp" ID for immediate rendering
+    const tempId = `temp_${Date.now()}`;
+    const optimisticMessage = { ...message, id: tempId };
+
+    // 1. Optimistic Update: Add to local state immediately
     setSessions(prev => prev.map(s => {
       if (s.id === sessionId) {
-        return {
-          ...s,
-          messages: [...s.messages, message],
-          updatedAt: Date.now()
-        };
+        return { ...s, messages: [...s.messages, optimisticMessage], updatedAt: Date.now() };
       }
       return s;
     }));
+
+    try {
+      // 2. Server Sync: Persist to database
+      const res = await api.post(`/api/v1/chat/sessions/${sessionId}/messages/`, {
+        sender: message.sender,
+        text: message.text,
+        is_proposal: message.isProposal || false,
+        proposal_data: message.proposalData || null,
+      });
+
+      // Map the server response back to our internal shape
+      const serverMessage: Message = {
+        id: res.data.id,
+        sender: res.data.sender,
+        text: res.data.text,
+        timestamp: new Date(res.data.timestamp).getTime(),
+        isProposal: res.data.is_proposal,
+        proposalData: res.data.proposal_data || undefined,
+      };
+
+      // 3. Final Sync: Replace the optimistic "temp" message with the real server-assigned message
+      setSessions(prev => prev.map(s => {
+        if (s.id === sessionId) {
+          const updatedMessages = s.messages.map(m => (m.id === tempId ? serverMessage : m));
+          return { ...s, messages: updatedMessages };
+        }
+        return s;
+      }));
+    } catch (err) {
+      console.error('Failed to persist message:', err);
+      // Optional: Mark the message as "Failed" in UI
+    }
   }, []);
 
   const updateSessionTitle = useCallback((sessionId: string, title: string) => {
-    setSessions(prev => prev.map(s => {
-      if (s.id === sessionId) {
-        return { ...s, title: title.substring(0, 30) };
-      }
-      return s;
-    }));
+    const truncated = title.substring(0, 50);
+    setSessions(prev => prev.map(s =>
+      s.id === sessionId ? { ...s, title: truncated } : s
+    ));
+    api.patch(`/api/v1/chat/sessions/${sessionId}/`, { title: truncated }).catch(() => {});
   }, []);
 
   const currentSession = sessions.find(s => s.id === currentSessionId) || null;
 
   return (
-    <ChatContext.Provider value={{ 
-      sessions, 
-      currentSessionId, 
+    <ChatContext.Provider value={{
+      sessions,
+      currentSessionId,
       currentSession,
-      setCurrentSessionId, 
-      createNewSession, 
-      deleteSession, 
+      isLoading,
+      setCurrentSessionId,
+      createNewSession,
+      deleteSession,
       addMessage,
-      updateSessionTitle
+      updateSessionTitle,
     }}>
       {children}
     </ChatContext.Provider>

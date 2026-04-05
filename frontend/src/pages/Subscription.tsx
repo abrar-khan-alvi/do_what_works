@@ -9,13 +9,15 @@ export const Subscription = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(false);
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     setIsProcessing(true);
-    // Simulate Stripe Checkout delay
-    setTimeout(() => {
-      subscribe();
+    try {
+      await subscribe();
+    } catch {
+      // subscribe failed — user stays unsubscribed
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   const features = [

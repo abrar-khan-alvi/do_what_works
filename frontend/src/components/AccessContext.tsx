@@ -1,57 +1,66 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { api } from '../services/api';
+import { useAuth } from './AuthContext';
 
 interface AccessContextType {
   isSubscribed: boolean;
   expiresAt: number | null;
   daysRemaining: number;
-  subscribe: () => void;
+  subscribe: () => Promise<void>;
   logout: () => void;
 }
 
 const AccessContext = createContext<AccessContextType | undefined>(undefined);
 
 export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(() => {
-    return localStorage.getItem('isSubscribed') === 'true';
-  });
+  const { isAuthenticated } = useAuth();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [daysRemaining, setDaysRemaining] = useState(0);
+  const initialized = useRef(false);
 
-  const [expiresAt, setExpiresAt] = useState<number | null>(() => {
-    const stored = localStorage.getItem('expiresAt');
-    return stored ? parseInt(stored, 10) : null;
-  });
+  const applySubscriptionData = useCallback((data: any) => {
+    const active = data.is_valid ?? false;
+    const exp = data.expires_at ? new Date(data.expires_at).getTime() : null;
+    const days = data.days_remaining ?? 0;
+    setIsSubscribed(active);
+    setExpiresAt(exp);
+    setDaysRemaining(days);
+  }, []);
 
-  const [daysRemaining, setDaysRemaining] = useState<number>(0);
-
+  // Fetch subscription status when authenticated
   useEffect(() => {
-    if (isSubscribed && expiresAt) {
-      const now = Date.now();
-      const diff = expiresAt - now;
-      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-      setDaysRemaining(Math.max(0, days));
-
-      if (diff <= 0) {
+    if (!isAuthenticated || initialized.current) return;
+    initialized.current = true;
+    api.get('/api/v1/auth/subscription/')
+      .then(res => applySubscriptionData(res.data))
+      .catch(() => {
         setIsSubscribed(false);
-        localStorage.setItem('isSubscribed', 'false');
-      }
-    } else {
+        setExpiresAt(null);
+        setDaysRemaining(0);
+      });
+  }, [isAuthenticated, applySubscriptionData]);
+
+  // Reset on logout
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsSubscribed(false);
+      setExpiresAt(null);
       setDaysRemaining(0);
+      initialized.current = false;
     }
-  }, [isSubscribed, expiresAt]);
+  }, [isAuthenticated]);
 
-  const subscribe = () => {
-    const tenDaysFromNow = Date.now() + 10 * 24 * 60 * 60 * 1000;
-    setIsSubscribed(true);
-    setExpiresAt(tenDaysFromNow);
-    localStorage.setItem('isSubscribed', 'true');
-    localStorage.setItem('expiresAt', tenDaysFromNow.toString());
-  };
+  const subscribe = useCallback(async () => {
+    const res = await api.post('/api/v1/auth/subscription/activate/');
+    applySubscriptionData(res.data);
+  }, [applySubscriptionData]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setIsSubscribed(false);
     setExpiresAt(null);
-    localStorage.removeItem('isSubscribed');
-    localStorage.removeItem('expiresAt');
-  };
+    setDaysRemaining(0);
+  }, []);
 
   return (
     <AccessContext.Provider value={{ isSubscribed, expiresAt, daysRemaining, subscribe, logout }}>

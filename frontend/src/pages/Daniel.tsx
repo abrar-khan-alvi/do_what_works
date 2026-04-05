@@ -13,7 +13,7 @@ import {
   Target,
   Brain
 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAccess } from '../components/AccessContext';
 import { useChat } from '../components/ChatContext';
 import { FeatureLock } from '../components/FeatureLock';
@@ -29,9 +29,34 @@ const SUGGESTIONS = [
 export const Daniel = () => {
   const { isSubscribed } = useAccess();
   const navigate = useNavigate();
-  const { currentSession, currentSessionId, createNewSession, addMessage, updateSessionTitle } = useChat();
+  const { id } = useParams<{ id: string }>();
+  const { sessions, currentSession, currentSessionId, setCurrentSessionId, createNewSession, addMessage, updateSessionTitle, isLoading } = useChat();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+
+  // Sync state with URL parameter
+  useEffect(() => {
+    if (id && id !== currentSessionId) {
+      setCurrentSessionId(id);
+    }
+  }, [id, currentSessionId, setCurrentSessionId]);
+
+  // Handle auto-redirection for path without ID or invalid ID
+  useEffect(() => {
+    if (isLoading) return;
+    
+    // Case 1: No ID in URL, redirect to most recent session
+    if (!id && sessions.length > 0) {
+      navigate(`/daniel/${sessions[0].id}`, { replace: true });
+      return;
+    }
+
+    // Case 2: ID in URL but it doesn't exist in our sessions list
+    if (id && sessions.length > 0 && !sessions.some(s => s.id === id)) {
+      navigate('/daniel', { replace: true });
+    }
+  }, [id, sessions, navigate, isLoading]);
+
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const webhookUrl = import.meta.env.VITE_DANIEL_WEBHOOK_URL;
@@ -65,10 +90,10 @@ export const Daniel = () => {
     
     // If it's the first message, update the title
     if (messages.length === 0) {
-      updateSessionTitle(currentSessionId, userText);
+      await updateSessionTitle(currentSessionId, userText);
     }
     
-    addMessage(currentSessionId, newUserMsg);
+    await addMessage(currentSessionId, newUserMsg);
     setInputValue('');
     setIsTyping(true);
 
@@ -89,12 +114,15 @@ export const Daniel = () => {
       if (responseText) {
         const parseExperimentData = (text: string) => {
           const findVal = (label: string) => {
-            const regex = new RegExp(`(?:^|\\n)\\s*(?:\\*\\*)?${label}:?\\s*(?:\\*\\*)?\\s*(.*)`, 'i');
+            // Updated regex to be more lenient: matches label anywhere in line, handles various punctuation
+            const regex = new RegExp(`(?:^|\\n).*?(?:${label}|${label.toLowerCase()}):?\\s*(?:\\*\\*)?\\s*(.*)`, 'i');
             const match = text.match(regex);
             if (match && match[1]) {
               let val = match[1].trim()
+                .split('\n')[0] // Only take the first line of the value
                 .replace(/\*\*$/, '')
-                .replace(/^[:\s-]+/, ''); // Clean up leading punctuation/whitespace
+                .replace(/^[:\s-]+/, '') // Clean up leading punctuation/whitespace
+                .replace(/\*\*$/, '');
 
               // For Duration, we only want the primary number
               if (label === 'Duration') {
@@ -127,7 +155,7 @@ export const Daniel = () => {
           proposalData: proposalData || undefined
         };
 
-        addMessage(currentSessionId, newDanielMsg);
+        await addMessage(currentSessionId, newDanielMsg);
       }
     } catch (error) {
       setIsTyping(false);
@@ -152,8 +180,16 @@ export const Daniel = () => {
         {/* Main Content Centered Container */}
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-8 md:py-20 flex flex-col min-h-full">
-            {messages.length === 0 ? (
+            {isLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-[#C75F33] animate-pulse">
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-[#C75F33]/10 rounded-3xl flex items-center justify-center ring-1 ring-[#C75F33]/20 shadow-2xl mb-4">
+                  <Sparkles size={32} className="md:w-10 md:h-10" />
+                </div>
+                <p className="text-xs md:text-sm font-bold tracking-widest uppercase opacity-40">Connecting to Strategist...</p>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in duration-700">
+
                 <div className="w-16 h-16 md:w-20 md:h-20 bg-[#C75F33]/10 rounded-3xl flex items-center justify-center text-[#C75F33] mb-6 md:mb-8 ring-1 ring-[#C75F33]/20 shadow-2xl">
                   <Sparkles size={32} className="md:w-10 md:h-10" />
                 </div>

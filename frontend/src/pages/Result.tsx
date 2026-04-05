@@ -10,11 +10,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const Result = () => {
   const { isSubscribed } = useAccess();
-  const { experiments, restoreExperiment } = useExperiments();
+  const { experiments, fetchExperiments } = useExperiments();
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed' | 'abandoned'>('all');
-  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
-  const [restoreTargetId, setRestoreTargetId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'queued' | 'completed' | 'abandoned'>('all');
 
   const filteredExperiments = experiments.filter(exp => {
     if (filter === 'all') return true;
@@ -24,6 +22,7 @@ export const Result = () => {
   const getStatusColor = (status: Experiment['status']) => {
     switch (status) {
       case 'active': return 'border-[#10b981]/30 bg-[#10b981]/5 text-[#10b981]';
+      case 'queued': return 'border-[#8b5cf6]/30 bg-[#8b5cf6]/5 text-[#8b5cf6]';
       case 'completed': return 'border-[#60a5fa]/30 bg-[#60a5fa]/5 text-[#60a5fa]';
       case 'abandoned': return 'border-[#ef4444]/30 bg-[#ef4444]/5 text-[#ef4444]';
       default: return 'border-white/10 bg-white/5 text-[#8e9299]';
@@ -33,27 +32,10 @@ export const Result = () => {
   const tabs: { id: typeof filter; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'active', label: 'Active' },
+    { id: 'queued', label: 'Queue' },
     { id: 'completed', label: 'Completed' },
     { id: 'abandoned', label: 'Archived' },
   ];
-
-  const handleRestore = (id: string) => {
-    setRestoreTargetId(id);
-    const hasActive = experiments.some(e => e.status === 'active');
-    if (hasActive) {
-      setIsRestoreModalOpen(true);
-    } else {
-      confirmRestore(id);
-    }
-  };
-
-  const confirmRestore = (id?: string) => {
-    const targetId = id || restoreTargetId;
-    if (targetId) {
-      restoreExperiment(targetId);
-      setRestoreTargetId(null);
-    }
-  };
 
   return (
     <DashboardLayout noPadding>
@@ -77,12 +59,12 @@ export const Result = () => {
           </div>
 
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl border border-white/5 self-start">
+          <div className="flex items-center gap-2 mb-8 bg-white/5 p-1.5 rounded-2xl border border-white/5 self-start overflow-x-auto no-scrollbar max-w-full">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                   filter === tab.id 
                     ? 'bg-white text-black shadow-lg shadow-black/20' 
                     : 'text-[#8e9299] hover:text-white'
@@ -120,7 +102,7 @@ export const Result = () => {
                             <div className="flex items-center gap-3 text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">
                                <span className="flex items-center gap-1">
                                  <Calendar size={12} />
-                                 Started {new Date(exp.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                 {exp.status === 'queued' ? 'Queued' : `Started ${new Date(exp.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
                                </span>
                                <span className="w-1 h-1 rounded-full bg-white/10" />
                                <span>{exp.metric} Level</span>
@@ -137,35 +119,35 @@ export const Result = () => {
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 md:ml-16">
                         <div className="flex-1 max-w-xs space-y-2">
                            <div className="flex justify-between text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">
-                              <span>Progress</span>
-                              <span>{exp.logs.length} / {exp.durationDays} Days</span>
+                              <span>{exp.status === 'queued' ? 'Duration' : 'Progress'}</span>
+                              <span>{exp.status === 'queued' ? `${exp.durationDays} Days` : `${exp.logs.length} / ${exp.durationDays} Days`}</span>
                            </div>
                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
                              <div 
-                               className={`h-full transition-all duration-500 ${exp.status === 'active' ? 'bg-[#10b981]' : 'bg-[#8e9299]'}`}
-                               style={{ width: `${progress}%` }}
+                               className={`h-full transition-all duration-500 ${
+                                 exp.status === 'active' ? 'bg-[#10b981]' : 
+                                 exp.status === 'queued' ? 'bg-[#8b5cf6]' : 'bg-[#8e9299]'
+                               }`}
+                               style={{ width: `${exp.status === 'queued' ? 0 : progress}%` }}
                              />
                            </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => navigate(`/result/${exp.id}`)}
-                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 text-xs text-white hover:bg-white/10 transition-all font-bold group/btn"
-                          >
-                            <span>View Analytics</span>
-                            <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                          </button>
-
-                          {exp.status !== 'active' && (
+                          {exp.status !== 'queued' && (
                             <button 
-                              onClick={() => handleRestore(exp.id)}
-                              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#10b981]/10 text-xs text-[#10b981] hover:bg-[#10b981]/20 transition-all font-bold"
-                              title="Restore to Active"
+                              onClick={() => navigate(`/result/${exp.id}`)}
+                              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 text-xs text-white hover:bg-white/10 transition-all font-bold group/btn"
                             >
-                              <TrendingUp size={14} />
-                              <span className="hidden sm:inline">Restore</span>
+                              <span>View Analytics</span>
+                              <ArrowRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                             </button>
+                          )}
+                          
+                          {exp.status === 'queued' && (
+                            <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest bg-white/5 px-4 py-2 rounded-xl">
+                              In Queue
+                            </span>
                           )}
                         </div>
                       </div>
@@ -212,19 +194,6 @@ export const Result = () => {
           />
         )}
       </div>
-
-      <ConfirmModal
-        isOpen={isRestoreModalOpen}
-        onClose={() => {
-          setIsRestoreModalOpen(false);
-          setRestoreTargetId(null);
-        }}
-        onConfirm={confirmRestore}
-        title="Restore Experiment"
-        message="Restoring this experiment will automatically archive your currently active one. Do you wish to proceed?"
-        confirmText="Restore"
-        variant="primary"
-      />
     </DashboardLayout>
   );
 };
