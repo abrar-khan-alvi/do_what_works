@@ -87,48 +87,52 @@ const Navbar = () => {
             : 'bg-transparent'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 md:px-10 h-18 flex items-center justify-between py-4">
-          {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
-            <img src={logo} alt="Do What Works" className="h-10 w-auto" />
-          </Link>
+        <div className="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center py-4">
+          {/* Logo Area */}
+          <div className="flex-1 flex justify-start">
+            <Link to="/" className="flex-shrink-0 transition-transform hover:scale-105 active:scale-95">
+              <img src={logo} alt="Do What Works" className="h-10 w-auto" />
+            </Link>
+          </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Desktop Nav - Centered */}
+          <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((l) => (
               <button
                 key={l.label}
                 onClick={() => scrollTo(l.href)}
-                className="text-sm text-[#8e9299] hover:text-white transition-colors font-medium"
+                className="text-sm text-[#8e9299] hover:text-white transition-all font-semibold tracking-tight"
               >
                 {l.label}
               </button>
             ))}
           </nav>
 
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          {/* Desktop CTAs Area */}
+          <div className="flex-1 hidden md:flex justify-end items-center gap-4">
             <Link
               to="/login"
-              className="text-sm text-[#8e9299] hover:text-white font-medium transition-colors px-4 py-2"
+              className="text-sm text-[#8e9299] hover:text-white font-semibold transition-colors px-3 py-2"
             >
               Sign In
             </Link>
             <Link
               to="/signup"
-              className="flex items-center gap-2 bg-[#C75F33] hover:bg-[#C75F33]/90 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-[#C75F33]/25 active:scale-95"
+              className="flex items-center gap-2 bg-[#C75F33] hover:bg-[#C75F33]/90 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-[#C75F33]/30 active:scale-95"
             >
               Get Started <ArrowRight size={14} />
             </Link>
           </div>
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden text-[#8e9299] hover:text-white transition-colors p-2"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu size={22} />
-          </button>
+          {/* Mobile Hamburger Area */}
+          <div className="md:hidden flex-1 flex justify-end">
+            <button
+              className="text-[#8e9299] hover:text-white transition-colors p-2"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu size={22} />
+            </button>
+          </div>
         </div>
       </header>
 
