@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    # We use a command to override the entrypoint's default if needed, 
+    # but the Dockerfile already handles it.
+    # We can also add a healthcheck if we want.
