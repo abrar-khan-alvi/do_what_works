@@ -114,6 +114,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',
     'https://ekkoloop.co.uk',
     'http://ekkoloop.co.uk',
+    'https://api.ekkoloop.co.uk',
+    'http://api.ekkoloop.co.uk',
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -136,6 +138,8 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:5173',
     'https://ekkoloop.co.uk',
     'http://ekkoloop.co.uk',
+    'https://api.ekkoloop.co.uk',
+    'http://api.ekkoloop.co.uk',
 ]
 
 # Security Settings for Production HTTPS
