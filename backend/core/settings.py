@@ -13,7 +13,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'api.ekkoloop.co.uk', 'ekkoloop.co.uk']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 
@@ -112,10 +112,6 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://ekkoloop.co.uk',
-    'http://ekkoloop.co.uk',
-    'https://api.ekkoloop.co.uk',
-    'http://api.ekkoloop.co.uk',
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -136,10 +132,6 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'https://ekkoloop.co.uk',
-    'http://ekkoloop.co.uk',
-    'https://api.ekkoloop.co.uk',
-    'http://api.ekkoloop.co.uk',
 ]
 
 # Security Settings for Production HTTPS
@@ -156,5 +148,5 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = f'Do What Works <{EMAIL_HOST_USER}>'
 
 # Frontend URL (for password reset links)
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://ekkoloop.co.uk')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 

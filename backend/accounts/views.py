@@ -125,7 +125,7 @@ class VerifyOTPView(APIView):
         return Response(
             {
                 'message': 'Account verified successfully.',
-                'user': UserProfileSerializer(user).data,
+                'user': UserProfileSerializer(user, context={'request': request}).data,
                 **tokens,
             },
             status=status.HTTP_201_CREATED
@@ -161,7 +161,7 @@ class LoginView(APIView):
         return Response(
             {
                 'message': 'Login successful.',
-                'user': UserProfileSerializer(user).data,
+                'user': UserProfileSerializer(user, context={'request': request}).data,
                 **tokens,
             },
             status=status.HTTP_200_OK
