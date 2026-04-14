@@ -20,6 +20,12 @@ export interface Experiment {
   startDate: string;   // "YYYY-MM-DD"
   status: 'active' | 'queued' | 'completed' | 'abandoned';
   logs: DailyLogEntry[];
+  aiAnalysis?: {
+    pragmatic_score: number;
+    verdict: string;
+    analysis: string;
+    recommendation: string;
+  };
 }
 
 interface ExperimentContextType {
@@ -57,6 +63,7 @@ const mapExperiment = (e: any): Experiment => ({
   startDate: e.start_date,
   status: e.status as 'active' | 'queued' | 'completed' | 'abandoned',
   logs: (e.logs || []).map(mapLog),
+  aiAnalysis: e.ai_analysis,
 });
 
 export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

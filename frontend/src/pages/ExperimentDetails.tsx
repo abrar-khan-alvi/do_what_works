@@ -2,8 +2,10 @@ import React from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { 
   ArrowLeft, ArrowRight, Trash2, Calendar, Target, 
-  TrendingUp, CheckCircle2, XCircle, Clock 
+  TrendingUp, CheckCircle2, XCircle, Clock, Brain, Sparkles, Loader2 
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { api } from '../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExperiments } from '../components/ExperimentContext';
 import { motion } from 'framer-motion';
@@ -12,8 +14,9 @@ import { ConfirmModal } from '../components/ConfirmModal';
 export const ExperimentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { experiments, deleteExperiment } = useExperiments();
+  const { experiments, deleteExperiment, fetchExperiments } = useExperiments();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
   
   const experiment = experiments.find(e => e.id === id);
 
@@ -42,6 +45,19 @@ export const ExperimentDetails = () => {
     navigate('/result');
   };
 
+  const handleRequestAnalysis = async () => {
+    setIsAnalyzing(true);
+    try {
+      await api.post(`/api/v1/experiments/${experiment.id}/analyze/`);
+      await fetchExperiments(); // Refresh to get the analysis
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      alert('Analysis failed. Please check your connection or try again later.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   // Analytics Calculations
   const logsCount = experiment.logs.length;
   const completionRate = Math.round((logsCount / experiment.durationDays) * 100);
@@ -51,28 +67,39 @@ export const ExperimentDetails = () => {
   
   const daysLeft = Math.max(0, experiment.durationDays - logsCount);
 
-  // Simple Streak Calculation
+  // Longest Streak Calculation
   const calculateStreak = () => {
     if (logsCount === 0) return 0;
-    const sortedLogs = [...experiment.logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    let streak = 0;
-    let currentDate = new Date();
-    currentDate.setHours(0,0,0,0);
+    
+    // Sort logs by date ascending
+    const sortedLogs = [...experiment.logs].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    let maxStreak = 0;
+    let currentStreak = 0;
+    let lastDate: Date | null = null;
 
     for (let log of sortedLogs) {
       const logDate = new Date(log.date);
       logDate.setHours(0,0,0,0);
       
-      const diffDays = Math.floor((currentDate.getTime() - logDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (diffDays <= 1) { // Logged today or yesterday
-         streak++;
-         currentDate = logDate;
+      if (!lastDate) {
+        currentStreak = 1;
       } else {
-        break;
+        const diffDays = Math.floor((logDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays === 1) {
+          currentStreak++;
+        } else if (diffDays > 1) {
+          currentStreak = 1;
+        }
       }
+      
+      maxStreak = Math.max(maxStreak, currentStreak);
+      lastDate = logDate;
     }
-    return streak;
+    
+    return maxStreak;
   };
 
   // Chart Logic (SVG)
@@ -102,6 +129,25 @@ export const ExperimentDetails = () => {
           </button>
           
           <div className="flex items-center gap-3">
+            {experiment.status === 'completed' && (
+              <button 
+                onClick={() => navigate('/experiment', { 
+                  state: { 
+                    proposalData: {
+                      hypothesis: experiment.hypothesis,
+                      action: experiment.action,
+                      metric: experiment.metric,
+                      duration: `${experiment.durationDays} Days`
+                    },
+                    isRefining: true
+                  } 
+                })}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10b981] text-black hover:bg-[#10b981]/90 transition-all text-xs font-bold uppercase tracking-widest shadow-lg shadow-[#10b981]/20"
+              >
+                <Sparkles size={14} />
+                Refine Protocol
+              </button>
+            )}
             <button 
               onClick={handleDelete}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20 transition-colors text-xs font-bold uppercase tracking-widest"
@@ -121,9 +167,6 @@ export const ExperimentDetails = () => {
               'border-white/10 bg-white/5 text-[#8e9299]'
             }`}>
               {experiment.status}
-            </span>
-            <span className="text-[#8e9299] text-[10px] uppercase font-bold tracking-widest">
-              ID: {experiment.id.slice(0, 8)}
             </span>
           </div>
           <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight mb-6">
@@ -164,6 +207,95 @@ export const ExperimentDetails = () => {
             <div className="text-3xl font-bold text-white uppercase">{calculateStreak()} 🔥</div>
           </div>
         </div>
+
+        {/* AI Strategist's Analysis Section */}
+        {experiment.status === 'completed' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            {!experiment.aiAnalysis ? (
+              <div className="bg-[#1a1b1e]/40 border border-[#C75F33]/20 rounded-3xl p-8 text-center">
+                <div className="w-16 h-16 bg-[#C75F33]/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-[#C75F33]">
+                  <Brain size={32} />
+                </div>
+                <h2 className="text-xl font-bold text-white mb-2">Ready for Strategy?</h2>
+                <p className="text-[#8e9299] max-w-sm mx-auto mb-8 text-sm leading-relaxed">
+                  Your experiment is complete. Let Daniel analyze the contrast between your beliefs and your performance.
+                </p>
+                <button 
+                  onClick={handleRequestAnalysis}
+                  disabled={isAnalyzing}
+                  className="flex items-center gap-3 px-8 py-3 rounded-2xl bg-[#C75F33] text-white font-black uppercase text-xs tracking-widest hover:bg-[#b0542d] transition-all disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} />
+                      <span>Request Strategist Analysis</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div className="bg-[#1a1b1e]/40 border border-[#C75F33]/30 rounded-3xl overflow-hidden shadow-2xl shadow-[#C75F33]/5">
+                <div className="bg-[#C75F33]/10 px-8 py-4 border-b border-[#C75F33]/20 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Brain size={20} className="text-[#C75F33]" />
+                    <span className="text-xs font-black uppercase tracking-[0.2em] text-[#C75F33]">Daniel's Tactical Verdict</span>
+                  </div>
+                  <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                    experiment.aiAnalysis.verdict === 'Validated' ? 'bg-[#10b981]/20 text-[#10b981]' :
+                    experiment.aiAnalysis.verdict === 'Falsified' ? 'bg-[#ef4444]/20 text-[#ef4444]' :
+                    'bg-white/10 text-[#8e9299]'
+                  }`}>
+                    {experiment.aiAnalysis.verdict}
+                  </div>
+                </div>
+                
+                <div className="p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {/* Score Card */}
+                    <div className="md:col-span-1 flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/5 order-2 md:order-1">
+                      <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8e9299] mb-4">Pragmatic Score</div>
+                      <div className="relative w-32 h-32 flex items-center justify-center">
+                        <svg className="w-full h-full -rotate-90">
+                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                          <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={364.4} strokeDashoffset={364.4 - (experiment.aiAnalysis.pragmatic_score / 10) * 364.4} className="text-[#C75F33] transition-all duration-1000 ease-out" strokeLinecap="round" />
+                        </svg>
+                        <div className="absolute inset-0 flex items-baseline justify-center pt-10">
+                          <span className="text-4xl font-black text-white">{experiment.aiAnalysis.pragmatic_score}</span>
+                          <span className="text-sm font-bold text-[#8e9299]">/10</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Analysis Content */}
+                    <div className="md:col-span-2 space-y-6 order-1 md:order-2">
+                       <div className="prose prose-invert prose-sm max-w-none text-[#8e9299] leading-relaxed">
+                          <ReactMarkdown>
+                            {experiment.aiAnalysis.analysis.replace(/\\n/g, '\n')}
+                          </ReactMarkdown>
+                       </div>
+                       
+                       <div className="pt-6 border-t border-white/5">
+                          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#C75F33] mb-3">Strategic Recommendation</div>
+                          <p className="text-white text-sm font-semibold italic bg-white/5 p-4 rounded-xl border-l-4 border-[#C75F33]">
+                            "{experiment.aiAnalysis.recommendation}"
+                          </p>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Visual Trend Chart */}
         <div className="bg-[#1a1b1e]/40 border border-white/10 rounded-3xl p-6 md:p-8 mb-8">
@@ -208,7 +340,7 @@ export const ExperimentDetails = () => {
                    {logsCount > 1 && (
                      <>
                        <path
-                         d={`M ${experiment.logs.map((_, i) => (i / (experiment.durationDays - 1)) * (chartWidth - padding * 2) + padding).join(' ')} V ${chartHeight} H ${padding} Z`}
+                         d={`M ${padding},${chartHeight} L ${points} V ${chartHeight} Z`}
                          fill="url(#chartGradient)"
                          opacity={0.5}
                        />

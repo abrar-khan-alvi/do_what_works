@@ -2,7 +2,10 @@ from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth import authenticate
 from django.conf import settings
+import stripe
 from rest_framework import status
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -327,3 +330,139 @@ class ActivateSubscriptionView(APIView):
             SubscriptionSerializer(sub).data,
             status=status.HTTP_200_OK
         )
+
+
+class CreateStripeCheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        try:
+            # Get or create subscription to check for existing Stripe Customer ID
+            sub, _ = Subscription.objects.get_or_create(user=user)
+            
+            customer_id = sub.stripe_customer_id
+            
+            # If no customer ID, create one in Stripe
+            if not customer_id:
+                customer = stripe.Customer.create(
+                    email=user.email,
+                    name=user.username,
+                    metadata={'user_id': user.id}
+                )
+                customer_id = customer.id
+                sub.stripe_customer_id = customer_id
+                sub.save(update_fields=['stripe_customer_id'])
+
+            # Create a checkout session using the customer ID
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+                line_items=[
+                    {
+                        'price_data': {
+                            'currency': 'usd',
+                            'product_data': {
+                                'name': 'Elite Access - 10-Day Sprint',
+                                'description': 'Full access to the protocol for 10 days.',
+                            },
+                            'unit_amount': 2900,  # $29.00
+                        },
+                        'quantity': 1,
+                    },
+                ],
+                mode='payment',
+                success_url=f"{settings.FRONTEND_URL}/success",
+                cancel_url=f"{settings.FRONTEND_URL}/subscription",
+                metadata={
+                    'user_id': user.id,
+                }
+            )
+
+            # Save the session ID to the user's subscription
+            sub, _ = Subscription.objects.get_or_create(user=user)
+            sub.stripe_checkout_session_id = checkout_session.id
+            sub.payment_status = 'pending'
+            
+            sub.save()
+
+            return Response({'url': checkout_session.url})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class StripeWebhookView(APIView):
+    permission_classes = [AllowAny]  # Stripe needs to reach this without auth
+
+    def post(self, request):
+        payload = request.body
+        sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+        endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
+
+        if not endpoint_secret:
+            return Response({"error": "Webhook secret not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, endpoint_secret
+            )
+        except ValueError as e:
+            # Invalid payload
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.SignatureVerificationError as e:
+            # Invalid signature
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle the event
+        if event['type'] == 'checkout.session.completed':
+            session = event['data']['object']
+            metadata = getattr(session, 'metadata', {})
+            if isinstance(metadata, dict):
+                user_id = metadata.get('user_id')
+            else:
+                user_id = getattr(metadata, 'user_id', None)
+            
+            print(f"DEBUG: Webhook received for session {session.id}, user_id: {user_id}")
+
+            if user_id:
+                try:
+                    user = CustomUser.objects.get(id=user_id)
+                    sub, _ = Subscription.objects.get_or_create(user=user)
+                    sub.is_active = True
+                    sub.payment_status = 'paid'
+                    sub.stripe_customer_id = getattr(session, 'customer', None)
+                    sub.activated_at = timezone.now()
+                    sub.expires_at = timezone.now() + timedelta(days=10)
+                    sub.save()
+                    print(f"DEBUG: Subscription activated for user {user.email}")
+                except CustomUser.DoesNotExist:
+                    print(f"DEBUG: User {user_id} not found")
+                except Exception as e:
+                    print(f"DEBUG: Error updating subscription: {str(e)}")
+
+        return Response(status=status.HTTP_200_OK)
+
+
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from .models import Notification
+from .serializers import NotificationSerializer
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+
+    @action(detail=True, methods=['patch'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return Response({'status': 'notification marked as read'})
+
+    @action(detail=False, methods=['post'], url_path='mark-all-read')
+    def mark_all_read(self, request):
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return Response({'status': 'all notifications marked as read'})

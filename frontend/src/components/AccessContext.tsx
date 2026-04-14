@@ -23,9 +23,21 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const active = data.is_valid ?? false;
     const exp = data.expires_at ? new Date(data.expires_at).getTime() : null;
     const days = data.days_remaining ?? 0;
+    
     setIsSubscribed(active);
     setExpiresAt(exp);
     setDaysRemaining(days);
+
+    // Set a timer to automatically expire the session if it's currently active
+    if (active && exp) {
+      const timeLeft = exp - Date.now();
+      if (timeLeft > 0) {
+        setTimeout(() => {
+          setIsSubscribed(false);
+          setDaysRemaining(0);
+        }, timeLeft);
+      }
+    }
   }, []);
 
   // Fetch subscription status when authenticated
@@ -52,9 +64,16 @@ export const AccessProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [isAuthenticated]);
 
   const subscribe = useCallback(async () => {
-    const res = await api.post('/api/v1/auth/subscription/activate/');
-    applySubscriptionData(res.data);
-  }, [applySubscriptionData]);
+    try {
+      const res = await api.post('/api/v1/auth/stripe/create-checkout/');
+      if (res.data.url) {
+        window.location.href = res.data.url;
+      }
+    } catch (error) {
+      console.error('Failed to initiate checkout:', error);
+      throw error;
+    }
+  }, []);
 
   const logout = useCallback(() => {
     setIsSubscribed(false);

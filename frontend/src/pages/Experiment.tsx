@@ -19,6 +19,7 @@ export const Experiment = () => {
   
   const hasActiveExperiment = experiments.some(e => e.status === 'active');
   const proposalData = location.state?.proposalData;
+  const isRefining = location.state?.isRefining;
 
   const [hypothesis, setHypothesis] = useState(proposalData?.hypothesis || 'If I daily execution of specified behavior, then sleep hours will improve');
   const [action, setAction] = useState(proposalData?.action || 'Daily execution of specified behavior');
@@ -72,9 +73,10 @@ export const Experiment = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-8 md:mb-10 px-1 md:px-0">
+      <div className="max-w-4xl mx-auto w-full pb-12">
+        <div className="mb-8 md:mb-10 px-1 md:px-0">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">
-          {currentStep === 4 ? 'Review & Launch' : 'New Experiment'}
+          {currentStep === 4 ? (isRefining ? 'Review Refined Protocol' : 'Review & Launch') : (isRefining ? 'Refine Protocol' : 'New Experiment')}
         </h1>
         {currentStep < 4 && (
           <p className="text-[#8e9299] text-sm md:text-base">
@@ -118,9 +120,9 @@ export const Experiment = () => {
             <textarea
               value={hypothesis}
               onChange={(e) => setHypothesis(e.target.value)}
-              readOnly={!!proposalData}
+              readOnly={!!proposalData && !isRefining}
               className={`w-full h-32 bg-transparent border border-white/10 rounded-xl p-6 text-white outline-none resize-none transition-colors ${
-                proposalData ? 'cursor-not-allowed opacity-80' : 'focus:border-white/30'
+                (!!proposalData && !isRefining) ? 'cursor-not-allowed opacity-80' : 'focus:border-white/30 hover:border-white/20'
               }`}
               placeholder="If I..."
             />
@@ -288,6 +290,7 @@ export const Experiment = () => {
               )}
             </button>
           )}
+        </div>
         </div>
       </div>
     </DashboardLayout>

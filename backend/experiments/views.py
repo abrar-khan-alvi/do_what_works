@@ -14,6 +14,7 @@ from .serializers import (
     ExperimentCreateSerializer,
     ExperimentStatusSerializer,
 )
+from .services import trigger_ai_analysis
 
 
 # ─────────────────────────────────────────────
@@ -265,7 +266,43 @@ class DailyLogView(APIView):
         if total_logs >= experiment.duration_days:
             experiment.status = 'completed'
             experiment.save()
+            
+            # Create a notification for the user
+            try:
+                from accounts.models import Notification
+                Notification.objects.create(
+                    user=experiment.user,
+                    title="Protocol Concluded",
+                    message=f"Your experiment \"{experiment.hypothesis[:50]}...\" has reached its designated duration. Data collection is complete.",
+                    notif_type='experiment_finished',
+                    link=f"/result/{experiment.id}"
+                )
+            except Exception as ne:
+                print(f"DEBUG: Failed to create completion notification: {ne}")
+
+            # Trigger AI analysis asynchronously (simulated for now, or just after save)
+            try:
+                trigger_ai_analysis(experiment)
+            except Exception as e:
+                print(f"DEBUG: Failed to trigger AI analysis: {str(e)}")
         return Response(
             DailyLogSerializer(log).data,
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
         )
+
+
+class ExperimentAnalyzeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            experiment = Experiment.objects.get(pk=pk, user=request.user)
+            analysis = trigger_ai_analysis(experiment)
+            if analysis:
+                return Response(analysis)
+            return Response(
+                {"error": "Failed to generate analysis. Check webhook configuration."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except Experiment.DoesNotExist:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)

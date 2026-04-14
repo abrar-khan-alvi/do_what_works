@@ -112,12 +112,30 @@ class Subscription(models.Model):
     is_active = models.BooleanField(default=False)
     expires_at = models.DateTimeField(null=True, blank=True)
     activated_at = models.DateTimeField(null=True, blank=True)
+    
+    # Stripe integration fields
+    stripe_customer_id = models.CharField(max_length=255, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(max_length=255, null=True, blank=True)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('paid', 'Paid'),
+            ('failed', 'Failed'),
+        ],
+        default='pending'
+    )
 
     @property
     def days_remaining(self):
         if self.is_active and self.expires_at:
             delta = self.expires_at - timezone.now()
-            return max(0, delta.days)
+            total_seconds = delta.total_seconds()
+            if total_seconds <= 0:
+                return 0
+            # Return full days including the current partial day (ceil)
+            import math
+            return math.ceil(total_seconds / 86400)
         return 0
 
     @property
@@ -128,3 +146,26 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f'Subscription for {self.user.email} — {"Active" if self.is_valid else "Inactive"}'
+
+
+class Notification(models.Model):
+    TYPES = [
+        ('experiment_finished', 'Experiment Finished'),
+        ('ai_analysis_ready', 'AI Analysis Ready'),
+        ('system', 'System'),
+        ('subscription', 'Subscription'),
+    ]
+
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notif_type = models.CharField(max_length=50, choices=TYPES, default='system')
+    link = models.CharField(max_length=500, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Notification for {self.user.username}: {self.title}'

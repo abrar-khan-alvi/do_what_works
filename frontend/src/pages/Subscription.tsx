@@ -8,6 +8,15 @@ export const Subscription = () => {
   const { isSubscribed, daysRemaining, subscribe, expiresAt } = useAccess();
   const [isProcessing, setIsProcessing] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(false);
+  const [, setTick] = useState(0);
+
+  // Force a re-render every minute for the countdown timer
+  React.useEffect(() => {
+    if (isSubscribed && daysRemaining <= 1) {
+      const interval = setInterval(() => setTick(t => t + 1), 60000);
+      return () => clearInterval(interval);
+    }
+  }, [isSubscribed, daysRemaining]);
 
   const handleSubscribe = async () => {
     setIsProcessing(true);
@@ -203,9 +212,24 @@ export const Subscription = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className={`text-[44px] md:text-5xl font-black leading-none tracking-tighter ${isSubscribed ? 'text-white' : 'text-white/10'}`}>
-                          {isSubscribed ? (daysRemaining < 10 ? `0${daysRemaining}` : daysRemaining) : '00'}
+                          {isSubscribed ? (
+                            daysRemaining > 1 ? (
+                              daysRemaining < 10 ? `0${daysRemaining}` : daysRemaining
+                            ) : (
+                              // Show HH:MM countdown for the final day
+                              (() => {
+                                const timeLeft = (expiresAt || 0) - Date.now();
+                                if (timeLeft <= 0) return '00';
+                                const hours = Math.floor(timeLeft / 3600000);
+                                const mins = Math.floor((timeLeft % 3600000) / 60000);
+                                return `${hours}H:${mins < 10 ? '0' + mins : mins}M`;
+                              })()
+                            )
+                          ) : '00'}
                         </span>
-                        <p className="text-[8px] md:text-[9px] font-bold text-[#8e9299] uppercase tracking-widest mt-1">Days Remaining</p>
+                        <p className="text-[8px] md:text-[9px] font-bold text-[#8e9299] uppercase tracking-widest mt-1">
+                          {isSubscribed && daysRemaining <= 1 ? 'Time Remaining' : 'Days Remaining'}
+                        </p>
                       </div>
                       <div className="flex flex-col items-end gap-1.5">
                         <span className="text-[9px] md:text-[10px] font-black text-white/40 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-lg">Quota: 10D</span>

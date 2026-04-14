@@ -43,7 +43,7 @@ class ExperimentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experiment
         fields = ['id', 'hypothesis', 'action', 'metric', 'duration_days',
-                  'start_date', 'status', 'logs', 'created_at', 'updated_at']
+                  'start_date', 'status', 'logs', 'ai_analysis', 'created_at', 'updated_at']
         read_only_fields = ['id', 'start_date', 'created_at', 'updated_at']
 
 

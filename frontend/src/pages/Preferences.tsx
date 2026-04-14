@@ -5,9 +5,12 @@ import { Settings, Bell, Palette, Database, Trash2, Edit2, Check, X } from 'luci
 import { useNavigate } from 'react-router-dom';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { api } from '../services/api';
+import { useAuth } from '../components/AuthContext';
+import { syncToN8n } from '../services/n8nSync';
 
 export const Preferences = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [onboardingData, setOnboardingData] = useState<Record<string, number> | null>(null);
   const [editingStep, setEditingStep] = useState<number | null>(null);
   const [tempAnswers, setTempAnswers] = useState<Record<string, number>>({});
@@ -38,6 +41,10 @@ export const Preferences = () => {
       await api.post('/api/v1/auth/onboarding/', { answers: {} });
     } catch { }
     localStorage.removeItem('user_onboarding_data');
+    
+    // Sync empty profile to n8n
+    await syncToN8n(user?.id, {});
+    
     navigate('/onboarding');
   };
 
@@ -52,6 +59,8 @@ export const Preferences = () => {
       localStorage.setItem('user_onboarding_data', JSON.stringify(tempAnswers));
       try {
         await api.post('/api/v1/auth/onboarding/', { answers: tempAnswers });
+        // Sync to n8n
+        await syncToN8n(user?.id, tempAnswers);
       } catch { /* localStorage already updated */ }
     }
     setEditingStep(null);

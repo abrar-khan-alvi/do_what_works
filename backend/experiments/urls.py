@@ -11,4 +11,5 @@ urlpatterns = [
     path('experiments/', views.ExperimentListCreateView.as_view(), name='experiments'),
     path('experiments/<int:pk>/', views.ExperimentDetailView.as_view(), name='experiment-detail'),
     path('experiments/<int:pk>/logs/', views.DailyLogView.as_view(), name='experiment-logs'),
+    path('experiments/<int:pk>/analyze/', views.ExperimentAnalyzeView.as_view(), name='experiment-analyze'),
 ]

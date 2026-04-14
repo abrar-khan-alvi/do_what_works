@@ -81,3 +81,12 @@ class SubscriptionSerializer(serializers.Serializer):
     expires_at = serializers.DateTimeField(read_only=True, allow_null=True)
     days_remaining = serializers.IntegerField(read_only=True)
     is_valid = serializers.BooleanField(read_only=True)
+
+
+from .models import Notification
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'notif_type', 'link', 'is_read', 'created_at']
+        read_only_fields = ['id', 'title', 'message', 'notif_type', 'link', 'created_at']

@@ -239,6 +239,73 @@ export const Overview = () => {
           </motion.div>
         </div>
 
+        {/* Strategist Insights - Surf latest AI verdicts */}
+        {useMemo(() => {
+          const analyzed = experiments
+            .filter(e => e.aiAnalysis)
+            .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+          
+          if (!analyzed.length) return null;
+
+          return (
+            <motion.div variants={fadeUp} className="space-y-6">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <Shield size={20} className="text-[#10b981]" />
+                  Strategist Insights
+                </h3>
+                <button 
+                  onClick={() => navigate('/result')}
+                  className="text-[10px] font-bold text-[#8e9299] hover:text-white uppercase tracking-widest transition-colors"
+                >
+                  View Archive
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {analyzed.slice(0, 2).map((exp) => (
+                  <div 
+                    key={exp.id} 
+                    className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 backdrop-blur-xl group hover:border-white/10 transition-all cursor-pointer"
+                    onClick={() => navigate(`/result/${exp.id}`)}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+                        <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest">Tactical Verdict</span>
+                      </div>
+                      <span className="text-[10px] font-medium text-[#8e9299]">
+                        {new Date(exp.startDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h4 className="text-white font-bold text-sm leading-tight group-hover:text-[#C75F33] transition-colors line-clamp-1">
+                        "{exp.hypothesis}"
+                      </h4>
+                      <p className="text-[#8e9299] text-xs leading-relaxed line-clamp-3 italic">
+                        {exp.aiAnalysis?.recommendation}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Pragmatic Score</div>
+                        <div className="text-xs font-black text-white">{exp.aiAnalysis?.pragmatic_score}/10</div>
+                      </div>
+                      <div className={`text-[10px] font-bold uppercase tracking-widest ${
+                        exp.aiAnalysis?.verdict === 'Verified' ? 'text-[#10b981]' : 'text-[#ef4444]'
+                      }`}>
+                        {exp.aiAnalysis?.verdict}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          );
+        }, [experiments, navigate])}
+
         {/* Lower Section: Active Experiment Details */}
         {activeExperiment && (
           <motion.div

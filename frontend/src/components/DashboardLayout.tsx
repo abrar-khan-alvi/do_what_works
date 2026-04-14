@@ -5,6 +5,8 @@ import { Logo } from './Logo';
 import { useAccess } from './AccessContext';
 import { useAuth } from './AuthContext';
 import { useChat } from './ChatContext';
+import { useNotifications } from './NotificationContext';
+import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,11 +17,22 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sidebarBottomExtra, noPadding }: DashboardLayoutProps) => {
-  const { isSubscribed, daysRemaining } = useAccess();
+  const { isSubscribed, daysRemaining, expiresAt } = useAccess();
   const { user, logout } = useAuth();
   const { sessions, currentSessionId, setCurrentSessionId, createNewSession, deleteSession } = useChat();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [, setTick] = useState(0);
+
+  // Live timer for the sidebar subscription countdown
+  useEffect(() => {
+    if (isSubscribed && daysRemaining <= 1) {
+      const interval = setInterval(() => setTick(t => t + 1), 60000);
+      return () => clearInterval(interval);
+    }
+  }, [isSubscribed, daysRemaining]);
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -201,7 +214,20 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
               <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest mb-2 opacity-50">Subscription</div>
               <div className="flex items-center justify-between">
                 <span className={`text-xs font-bold ${isSubscribed ? 'text-[#10b981]' : 'text-[#e53935]'}`}>
-                  {isSubscribed ? `${daysRemaining} Days Left` : 'Inactive'}
+                  {isSubscribed ? (
+                    daysRemaining > 1 ? (
+                      `${daysRemaining} Days Left`
+                    ) : (
+                      // Final Day Countdown
+                      (() => {
+                        const timeLeft = (expiresAt || 0) - Date.now();
+                        if (timeLeft <= 0) return '0 Days Left';
+                        const hours = Math.floor(timeLeft / 3600000);
+                        const mins = Math.floor((timeLeft % 3600000) / 60000);
+                        return `${hours}H:${mins < 10 ? '0' + mins : mins}M Left`;
+                      })()
+                    )
+                  ) : 'Inactive'}
                 </span>
                 {!isSubscribed && (
                   <Link to="/subscription" className="text-[10px] text-white underline underline-offset-2 hover:text-[#C75F33] transition-colors">
@@ -246,35 +272,62 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                 className={`transition-colors relative p-2 ${showNotifications ? 'text-white' : 'text-[#8e9299] hover:text-white'}`}
               >
                 <Bell size={20} />
-                <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#10b981] rounded-full border-2 border-[#0f1014]"></div>
+                {unreadCount > 0 && (
+                  <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#10b981] rounded-full border-2 border-[#0f1014]"></div>
+                )}
               </button>
 
               {showNotifications && (
                 <div className="fixed inset-x-4 top-20 md:absolute md:inset-auto md:right-0 md:top-full md:mt-2 md:w-80 bg-[#1a1b1e]/95 border border-white/10 rounded-2xl shadow-2xl py-2 z-[60] backdrop-blur-xl">
                   <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center">
                     <h3 className="font-medium text-white text-sm">Notifications</h3>
-                    <span className="text-[10px] font-medium text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-full uppercase tracking-wider">2 New</span>
+                    {unreadCount > 0 && (
+                      <span className="text-[10px] font-medium text-[#10b981] bg-[#10b981]/10 px-2 py-1 rounded-full uppercase tracking-wider">{unreadCount} New</span>
+                    )}
                   </div>
-                  <div className="max-h-[300px] overflow-y-auto">
-                    <div className="px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5">
-                      <div className="text-sm text-white mb-1">Experiment completed</div>
-                      <div className="text-xs text-[#8e9299]">Your "Morning Fasting" experiment has concluded.</div>
-                      <div className="text-[10px] text-[#8e9299] mt-2">2 hours ago</div>
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                    {notifications.length > 0 ? (
+                      notifications.map((n) => (
+                        <div 
+                          key={n.id}
+                          onClick={() => {
+                            if (n.link) navigate(n.link);
+                            markAsRead(n.id);
+                            setShowNotifications(false);
+                          }}
+                          className={`px-4 py-4 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 last:border-0 relative ${!n.is_read ? 'bg-white/[0.02]' : ''}`}
+                        >
+                          {!n.is_read && (
+                            <div className="absolute left-1.5 top-5 w-1 h-1 bg-[#10b981] rounded-full" />
+                          )}
+                          <div className={`text-sm mb-1 ${!n.is_read ? 'text-white font-medium' : 'text-[#8e9299]'}`}>{n.title}</div>
+                          <div className="text-xs text-[#8e9299] leading-relaxed line-clamp-2">{n.message}</div>
+                          <div className="text-[10px] text-[#8e9299]/50 mt-2 flex items-center gap-1">
+                            <Calendar size={10} />
+                            {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-10 text-center">
+                        <Bell size={24} className="mx-auto text-white/10 mb-2" />
+                        <div className="text-xs text-[#8e9299]">No notifications yet</div>
+                      </div>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-2 border-t border-white/5 text-center mt-1">
+                      <button
+                        onClick={() => {
+                          markAllAsRead();
+                          setShowNotifications(false);
+                        }}
+                        className="text-xs text-[#8e9299] hover:text-white transition-colors"
+                      >
+                        Mark all as read
+                      </button>
                     </div>
-                    <div className="px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors">
-                      <div className="text-sm text-white mb-1">Daily log reminder</div>
-                      <div className="text-xs text-[#8e9299]">Don't forget to log your metrics for today.</div>
-                      <div className="text-[10px] text-[#8e9299] mt-2">5 hours ago</div>
-                    </div>
-                  </div>
-                  <div className="px-4 py-2 border-t border-white/5 text-center mt-1">
-                    <button
-                      onClick={() => setShowNotifications(false)}
-                      className="text-xs text-[#8e9299] hover:text-white transition-colors"
-                    >
-                      Mark all as read
-                    </button>
-                  </div>
+                  )}
                 </div>
               )}
             </div>

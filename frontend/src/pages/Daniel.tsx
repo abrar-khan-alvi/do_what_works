@@ -16,6 +16,7 @@ import {
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAccess } from '../components/AccessContext';
 import { useChat } from '../components/ChatContext';
+import { useAuth } from '../components/AuthContext';
 import { FeatureLock } from '../components/FeatureLock';
 
 const SUGGESTIONS = [
@@ -30,6 +31,7 @@ export const Daniel = () => {
   const { isSubscribed } = useAccess();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { sessions, currentSession, currentSessionId, setCurrentSessionId, createNewSession, addMessage, updateSessionTitle, isLoading } = useChat();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -101,7 +103,13 @@ export const Daniel = () => {
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatInput: userText, sessionId: currentSessionId, action: 'sendMessage' }),
+        body: JSON.stringify({ 
+          chatInput: userText, 
+          sessionId: currentSessionId, 
+          action: 'sendMessage',
+          userid: String(user?.id || ''),
+          userId: String(user?.id || '') // Redundancy for workflow compatibility
+        }),
       });
 
       if (!response.ok) throw new Error('Network error');

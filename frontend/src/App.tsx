@@ -21,6 +21,7 @@ import { Overview } from './pages/Overview';
 import { AccessProvider } from './components/AccessContext';
 import { ChatProvider } from './components/ChatContext';
 import { ExperimentProvider } from './components/ExperimentContext';
+import { NotificationProvider } from './components/NotificationContext';
 
 // Shows a spinner while auth state is being resolved
 const LoadingScreen = () => (
@@ -53,34 +54,37 @@ export default function App() {
       <AccessProvider>
         <ChatProvider>
           <ExperimentProvider>
-            <BrowserRouter>
-              <Routes>
-                {/* Public auth routes */}
-                <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
-                <Route path="/overview" element={<PrivateRoute><Overview /></PrivateRoute>} />
-                <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-                <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
-                <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/verify-email-signup" element={<VerifyEmail nextRoute="/success-signup" />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/success-signup" element={<Success title="Account Created Successfully!" subtitle="Your account is ready. You can sign in now." />} />
-                <Route path="/success-reset" element={<Success title="Password Updated Successfully!" subtitle="Your new password has been saved. You can now continue securely." />} />
-
-                {/* Protected app routes */}
-                <Route path="/onboarding" element={<PrivateRoute skipOnboardingCheck><Onboarding /></PrivateRoute>} />
-                <Route path="/daniel/:id?" element={<PrivateRoute><Daniel /></PrivateRoute>} />
-                <Route path="/pragmatist" element={<Navigate to="/daniel" replace />} />
-                <Route path="/experiment" element={<PrivateRoute><Experiment /></PrivateRoute>} />
-                <Route path="/result" element={<PrivateRoute><Result /></PrivateRoute>} />
-                <Route path="/result/:id" element={<PrivateRoute><ExperimentDetails /></PrivateRoute>} />
-                <Route path="/daily-log" element={<PrivateRoute><DailyLog /></PrivateRoute>} />
-                <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
-                <Route path="/history" element={<Navigate to="/result" replace />} />
-                <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
-                <Route path="/preferences" element={<PrivateRoute><Preferences /></PrivateRoute>} />
-              </Routes>
-            </BrowserRouter>
+            <NotificationProvider>
+              <BrowserRouter>
+                <Routes>
+                  {/* Public auth routes */}
+                  <Route path="/" element={<PublicRoute><LandingPage /></PublicRoute>} />
+                  <Route path="/overview" element={<PrivateRoute><Overview /></PrivateRoute>} />
+                  <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+                  <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+                  <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/verify-email-signup" element={<VerifyEmail nextRoute="/success-signup" />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/success-signup" element={<Success title="Account Created Successfully!" subtitle="Your account is ready. You can sign in now." />} />
+                  <Route path="/success-reset" element={<Success title="Password Updated Successfully!" subtitle="Your new password has been saved. You can now continue securely." />} />
+                  <Route path="/success" element={<PrivateRoute><Success title="Elite Access Activated!" subtitle="The Strategist Protocol is now fully operational for the next 10 days." nextText="Return to Dashboard" nextRoute="/overview" /></PrivateRoute>} />
+  
+                  {/* Protected app routes */}
+                  <Route path="/onboarding" element={<PrivateRoute skipOnboardingCheck><Onboarding /></PrivateRoute>} />
+                  <Route path="/daniel/:id?" element={<PrivateRoute><Daniel /></PrivateRoute>} />
+                  <Route path="/pragmatist" element={<Navigate to="/daniel" replace />} />
+                  <Route path="/experiment" element={<PrivateRoute><Experiment /></PrivateRoute>} />
+                  <Route path="/result" element={<PrivateRoute><Result /></PrivateRoute>} />
+                  <Route path="/result/:id" element={<PrivateRoute><ExperimentDetails /></PrivateRoute>} />
+                  <Route path="/daily-log" element={<PrivateRoute><DailyLog /></PrivateRoute>} />
+                  <Route path="/subscription" element={<PrivateRoute><Subscription /></PrivateRoute>} />
+                  <Route path="/history" element={<Navigate to="/result" replace />} />
+                  <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+                  <Route path="/preferences" element={<PrivateRoute><Preferences /></PrivateRoute>} />
+                </Routes>
+              </BrowserRouter>
+            </NotificationProvider>
           </ExperimentProvider>
         </ChatProvider>
       </AccessProvider>

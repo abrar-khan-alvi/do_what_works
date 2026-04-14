@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../components/AuthContext';
+import { syncToN8n } from '../services/n8nSync';
 
 export const steps = [
   {
@@ -167,7 +168,13 @@ export const Onboarding = () => {
         // Also save to localStorage as local cache for offline Preferences display
         localStorage.setItem('user_onboarding_data', JSON.stringify(answers));
         // Refresh user so has_completed_onboarding becomes true in AuthContext
-        await refreshUser();
+        const refreshed = await refreshUser();
+        
+        // Sync to n8n after local save is successful
+        // We get the user ID from AuthContext, or if refreshUser returns it
+        const currentUser = (refreshed as any)?.id ? refreshed : (await api.get('/api/v1/auth/profile/')).data;
+        await syncToN8n(currentUser?.id, answers);
+
         navigate('/daniel');
       } catch (err) {
         console.error('Failed to save onboarding data:', err);

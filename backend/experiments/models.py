@@ -35,6 +35,7 @@ class Experiment(models.Model):
     duration_days = models.PositiveIntegerField()
     start_date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    ai_analysis = models.JSONField(null=True, blank=True)  # Stores score, verdict, analysis, feedback
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
