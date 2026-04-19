@@ -32,7 +32,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const fetchNotifications = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const res = await api.get('/api/v1/accounts/notifications/');
+      const res = await api.get('/api/v1/auth/notifications/');
       setNotifications(res.data);
     } catch (err) {
       console.error('Failed to fetch notifications:', err);
@@ -43,7 +43,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Optimistic update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
     try {
-      await api.patch(`/api/v1/accounts/notifications/${id}/mark_read/`);
+      await api.patch(`/api/v1/auth/notifications/${id}/mark_read/`);
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
       // Rollback on failure
@@ -55,7 +55,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     try {
-      await api.post('/api/v1/accounts/notifications/mark-all-read/');
+      await api.post('/api/v1/auth/notifications/mark-all-read/');
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err);
       fetchNotifications();

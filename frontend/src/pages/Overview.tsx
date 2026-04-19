@@ -13,6 +13,8 @@ import { useAuth } from '../components/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { steps } from './Onboarding';
+import { useAccess } from '../components/AccessContext';
+import { SubscriptionModal } from '../components/SubscriptionModal';
 
 import { DashboardLayout } from '../components/DashboardLayout';
 
@@ -31,12 +33,22 @@ const container = {
 };
 
 export const Overview = () => {
+  const { isSubscribed } = useAccess();
   const { experiments, activeExperiment } = useExperiments();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [onboardingData, setOnboardingData] = useState<any>(null);
   const [isLoadingOnboarding, setIsLoadingOnboarding] = useState(true);
+  const [showLockModal, setShowLockModal] = useState(false);
+
+  const handlePremiumClick = (callback: () => void) => {
+    if (isSubscribed) {
+      callback();
+    } else {
+      setShowLockModal(true);
+    }
+  };
 
   useEffect(() => {
     const fetchOnboarding = async () => {
@@ -212,15 +224,15 @@ export const Overview = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={processedBeliefData}>
                   <PolarGrid stroke="rgba(255,255,255,0.05)" />
-                  <PolarAngleAxis 
-                    dataKey="name" 
-                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 500 }} 
+                  <PolarAngleAxis
+                    dataKey="name"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 500 }}
                   />
-                  <PolarRadiusAxis 
-                    angle={30} 
-                    domain={[0, 100]} 
-                    tick={false} 
-                    axisLine={false} 
+                  <PolarRadiusAxis
+                    angle={30}
+                    domain={[0, 100]}
+                    tick={false}
+                    axisLine={false}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1a1b1e', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '12px' }}
@@ -244,7 +256,7 @@ export const Overview = () => {
           const analyzed = experiments
             .filter(e => e.aiAnalysis)
             .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-          
+
           if (!analyzed.length) return null;
 
           return (
@@ -254,8 +266,8 @@ export const Overview = () => {
                   <Shield size={20} className="text-[#10b981]" />
                   Strategist Insights
                 </h3>
-                <button 
-                  onClick={() => navigate('/result')}
+                <button
+                  onClick={() => handlePremiumClick(() => navigate('/result'))}
                   className="text-[10px] font-bold text-[#8e9299] hover:text-white uppercase tracking-widest transition-colors"
                 >
                   View Archive
@@ -264,10 +276,10 @@ export const Overview = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {analyzed.slice(0, 2).map((exp) => (
-                  <div 
-                    key={exp.id} 
+                  <div
+                    key={exp.id}
                     className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 backdrop-blur-xl group hover:border-white/10 transition-all cursor-pointer"
-                    onClick={() => navigate(`/result/${exp.id}`)}
+                    onClick={() => handlePremiumClick(() => navigate(`/result/${exp.id}`))}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -293,9 +305,8 @@ export const Overview = () => {
                         <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest">Pragmatic Score</div>
                         <div className="text-xs font-black text-white">{exp.aiAnalysis?.pragmatic_score}/10</div>
                       </div>
-                      <div className={`text-[10px] font-bold uppercase tracking-widest ${
-                        exp.aiAnalysis?.verdict === 'Verified' ? 'text-[#10b981]' : 'text-[#ef4444]'
-                      }`}>
+                      <div className={`text-[10px] font-bold uppercase tracking-widest ${exp.aiAnalysis?.verdict === 'Verified' ? 'text-[#10b981]' : 'text-[#ef4444]'
+                        }`}>
                         {exp.aiAnalysis?.verdict}
                       </div>
                     </div>
@@ -390,7 +401,7 @@ export const Overview = () => {
                 {/* Call to action if complete */}
                 {activeExperiment.logs.length >= activeExperiment.durationDays && (
                   <button
-                    onClick={() => navigate(`/result/${activeExperiment.id}`)}
+                    onClick={() => handlePremiumClick(() => navigate(`/result/${activeExperiment.id}`))}
                     className="w-full flex items-center justify-center gap-2 bg-[#10b981] text-black font-bold py-4 rounded-2xl hover:bg-[#10b981]/90 transition-all active:scale-[0.98] shadow-lg shadow-[#10b981]/20"
                   >
                     <span>Analyze Evidence</span>
@@ -402,6 +413,11 @@ export const Overview = () => {
           </motion.div>
         )}
       </motion.div>
+
+      <SubscriptionModal 
+        isOpen={showLockModal} 
+        onClose={() => setShowLockModal(false)} 
+      />
     </DashboardLayout>
   );
 };

@@ -21,8 +21,8 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
 class DailyLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyLog
-        fields = ['id', 'date', 'completed', 'metric_value', 'notes', 'daily_observation', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'date', 'completed', 'metric_value', 'notes', 'daily_observation', 'ai_suggestion', 'created_at']
+        read_only_fields = ['id', 'created_at', 'ai_suggestion']
 
 
 class ExperimentListSerializer(serializers.ModelSerializer):

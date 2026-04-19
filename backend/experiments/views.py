@@ -14,7 +14,7 @@ from .serializers import (
     ExperimentCreateSerializer,
     ExperimentStatusSerializer,
 )
-from .services import trigger_ai_analysis
+from .services import trigger_ai_analysis, trigger_daily_action
 
 
 # ─────────────────────────────────────────────
@@ -302,6 +302,32 @@ class ExperimentAnalyzeView(APIView):
                 return Response(analysis)
             return Response(
                 {"error": "Failed to generate analysis. Check webhook configuration."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except Experiment.DoesNotExist:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+class ExperimentDailyActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            experiment = Experiment.objects.get(pk=pk, user=request.user)
+            today = timezone.now().date()
+            
+            # Get or create today's log entry as a placeholder for the suggestion
+            log, created = DailyLog.objects.get_or_create(
+                experiment=experiment,
+                date=today,
+                defaults={'completed': 'pending'}
+            )
+            
+            suggestion = trigger_daily_action(experiment, log)
+            if suggestion:
+                return Response({"suggestion": suggestion, "log_id": log.id})
+            
+            return Response(
+                {"error": "Failed to generate daily action."},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
         except Experiment.DoesNotExist:

@@ -47,12 +47,12 @@ export const Profile = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
             <div className="relative group/avatar cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handlePhotoUpload} 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                className="hidden"
               />
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-[#1a1b1e] ring-2 ring-white/10 shadow-2xl z-10 relative bg-[#C75F33]/20 flex items-center justify-center overflow-hidden">
                 {isUploadingPhoto ? (
@@ -64,10 +64,10 @@ export const Profile = () => {
                     {user?.username?.[0] || '?'}
                   </span>
                 )}
-                
+
                 {/* Hover overlay */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-none z-20">
-                   <div className="text-white text-xs font-bold bg-[#C75F33] px-3 py-1.5 rounded-full shadow-lg">Change Photo</div>
+                  <div className="text-white text-xs font-bold bg-[#C75F33] px-3 py-1.5 rounded-full shadow-lg">Change Photo</div>
                 </div>
               </div>
               <div className="absolute inset-0 bg-[#C75F33] blur-[30px] opacity-20 -z-10 rounded-full group-hover/avatar:opacity-40 transition-opacity duration-500" />
@@ -114,16 +114,6 @@ export const Profile = () => {
                     {user?.email}
                   </div>
                 </div>
-
-                <div className="pt-4 mt-2 border-t border-white/5 flex gap-4">
-                  <Link
-                    to="/forgot-password"
-                    className="flex items-center gap-2 text-sm text-[#8e9299] hover:text-white transition-colors"
-                  >
-                    <Key size={16} />
-                    Change Password
-                  </Link>
-                </div>
               </div>
             </div>
 
@@ -153,11 +143,10 @@ export const Profile = () => {
               <div className="mt-8 pt-6 border-t border-white/5">
                 <Link
                   to="/subscription"
-                  className={`block w-full py-4 text-center rounded-xl font-bold transition-all shadow-xl ${
-                    isSubscribed
-                      ? 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
-                      : 'bg-white text-black hover:bg-white/90'
-                  }`}
+                  className={`block w-full py-4 text-center rounded-xl font-bold transition-all shadow-xl ${isSubscribed
+                    ? 'bg-white/5 text-white hover:bg-white/10 border border-white/10'
+                    : 'bg-white text-black hover:bg-white/90'
+                    }`}
                 >
                   {isSubscribed ? 'Manage Subscription' : 'Upgrade Now'}
                 </Link>

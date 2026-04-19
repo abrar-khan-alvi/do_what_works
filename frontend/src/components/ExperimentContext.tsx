@@ -5,10 +5,11 @@ import { useAuth } from './AuthContext';
 export interface DailyLogEntry {
   id: string;
   date: string;
-  completed: 'yes' | 'no';
+  completed: 'yes' | 'no' | 'pending';
   metricValue: number;
   notes: string;
   dailyObservation: string;
+  aiSuggestion?: string;
 }
 
 export interface Experiment {
@@ -38,6 +39,7 @@ interface ExperimentContextType {
   getTodayLog: (experimentId: string) => DailyLogEntry | null;
   deleteExperiment: (id: string) => Promise<void>;
   archiveExperiment: (id: string, status: 'completed' | 'abandoned') => Promise<void>;
+  generateDailyAction: (experimentId: string) => Promise<string | null>;
   fetchExperiments: () => Promise<void>;
 }
 
@@ -51,6 +53,7 @@ const mapLog = (l: any): DailyLogEntry => ({
   metricValue: l.metric_value,
   notes: l.notes || '',
   dailyObservation: l.daily_observation || '',
+  aiSuggestion: l.ai_suggestion || '',
 });
 
 /** Map API experiment object to internal Experiment */
@@ -146,7 +149,7 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const hasLoggedToday = useCallback((experimentId: string) => {
     const today = new Date().toISOString().split('T')[0];
     const exp = experiments.find(e => e.id === experimentId);
-    return !!exp?.logs.find(l => l.date === today);
+    return !!exp?.logs.find(l => l.date === today && l.completed !== 'pending');
   }, [experiments]);
 
   const getTodayLog = useCallback((experimentId: string) => {
@@ -169,7 +172,19 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch { /* ignored */ }
   }, []);
 
+  const generateDailyAction = useCallback(async (experimentId: string) => {
+    try {
+      const res = await api.post(`/api/v1/experiments/${experimentId}/generate-daily-action/`);
+      await fetchExperiments(); // Refresh to get the saved suggestion in the log
+      return res.data.suggestion;
+    } catch (err) {
+      console.error('Failed to generate daily action:', err);
+      return null;
+    }
+  }, [fetchExperiments]);
+
   return (
+
     <ExperimentContext.Provider value={{
       experiments,
       activeExperiment,
@@ -180,6 +195,7 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       getTodayLog,
       deleteExperiment,
       archiveExperiment,
+      generateDailyAction,
       fetchExperiments,
     }}>
       {children}

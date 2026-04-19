@@ -9,8 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export const DailyLog = () => {
   const { isSubscribed } = useAccess();
-  const { activeExperiment, logToday, hasLoggedToday, getTodayLog } = useExperiments();
+  const { activeExperiment, logToday, hasLoggedToday, getTodayLog, generateDailyAction } = useExperiments();
   const navigate = useNavigate();
+  const [isGeneratingAction, setIsGeneratingAction] = useState(false);
 
   const [completed, setCompleted] = useState<'yes' | 'no' | null>(null);
   const [score, setScore] = useState(5);
@@ -22,7 +23,7 @@ export const DailyLog = () => {
   useEffect(() => {
     if (activeExperiment && hasLoggedToday(activeExperiment.id)) {
       const log = getTodayLog(activeExperiment.id);
-      if (log) {
+      if (log && log.completed !== 'pending') {
         setCompleted(log.completed);
         setScore(log.metricValue);
         setExperimentNotes(log.notes);
@@ -43,6 +44,18 @@ export const DailyLog = () => {
     });
     setIsSubmitted(true);
   };
+
+  const handleGenerateAction = async () => {
+    if (!activeExperiment) return;
+    setIsGeneratingAction(true);
+    await generateDailyAction(activeExperiment.id);
+    setIsGeneratingAction(true); // Keep the 'just generated' feel or let it refresh
+    setTimeout(() => setIsGeneratingAction(false), 1000);
+  };
+
+  const todayLog = activeExperiment ? getTodayLog(activeExperiment.id) : null;
+  const aiSuggestion = todayLog?.aiSuggestion;
+
 
   const progressPercent = activeExperiment 
     ? Math.round(((activeExperiment.logs.length) / activeExperiment.durationDays) * 100) 
@@ -184,7 +197,36 @@ export const DailyLog = () => {
                     <h3 className="text-sm md:text-base font-bold text-white leading-relaxed italic opacity-90">
                       "{activeExperiment.hypothesis}"
                     </h3>
+
+                    {/* AI Suggestion Button/Display */}
+                    <div className="pt-4 mt-2 border-t border-white/5">
+                      {!aiSuggestion ? (
+                        <button
+                          onClick={handleGenerateAction}
+                          disabled={isGeneratingAction}
+                          className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-[#C75F33]/5 border border-[#C75F33]/20 text-[#C75F33] hover:bg-[#C75F33] hover:text-white transition-all disabled:opacity-50 group shadow-lg shadow-[#C75F33]/5"
+                        >
+                          {isGeneratingAction ? (
+                            <Clock size={16} className="animate-spin" />
+                          ) : (
+                            <Sparkles size={16} className="group-hover:scale-110 transition-transform" />
+                          )}
+                          <span className="text-xs font-black uppercase tracking-[0.2em]">Strategize Today's Action</span>
+                        </button>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#C75F33]">
+                            <Sparkles size={12} />
+                            <span>Daniel's Tactical Pivot for Today</span>
+                          </div>
+                          <div className="bg-[#C75F33]/10 border border-[#C75F33]/20 p-4 rounded-xl text-white text-sm font-medium italic shadow-lg shadow-[#C75F33]/5">
+                            "{aiSuggestion}"
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
+
 
                   {/* Binary Completion */}
                   <div className="flex flex-col gap-4">
@@ -266,14 +308,18 @@ export const DailyLog = () => {
               {/* Submit Button */}
               <button 
                 onClick={handleSubmit}
-                disabled={!completed}
+                disabled={!completed || !aiSuggestion}
                 className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all transform active:scale-[0.98] shadow-2xl ${
-                  completed 
+                  completed && aiSuggestion
                     ? 'bg-white text-black hover:bg-[#C75F33] hover:text-white shadow-black/20' 
                     : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
                 }`}
               >
-                {completed ? 'Submit Daily Log' : 'Complete Action to Log'}
+                {!aiSuggestion 
+                  ? 'Strategize first to Log' 
+                  : completed 
+                    ? 'Submit Daily Log' 
+                    : 'Complete Action to Log'}
               </button>
             </div>
           )}

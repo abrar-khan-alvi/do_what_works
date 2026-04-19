@@ -35,6 +35,7 @@ export const Daniel = () => {
   const { sessions, currentSession, currentSessionId, setCurrentSessionId, createNewSession, addMessage, updateSessionTitle, isLoading } = useChat();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync state with URL parameter
   useEffect(() => {
@@ -97,6 +98,9 @@ export const Daniel = () => {
     
     await addMessage(currentSessionId, newUserMsg);
     setInputValue('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
     setIsTyping(true);
 
     try {
@@ -294,15 +298,36 @@ export const Daniel = () => {
         {/* Floating Input Area Centered */}
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/95 to-transparent pt-12 md:pt-20 pb-6 md:pb-10 px-4 md:px-6">
           <div className="max-w-3xl mx-auto w-full relative">
-            <form onSubmit={handleSend} className="relative bg-[#1a1b1e] border border-white/10 rounded-[24px] md:rounded-[28px] shadow-2xl focus-within:border-[#C75F33]/50 transition-all group overflow-hidden p-1.5 md:p-2">
-              <input 
+            <form 
+              onSubmit={handleSend} 
+              className="relative bg-[#1a1b1e] border border-white/10 rounded-[24px] md:rounded-[28px] shadow-2xl focus-within:border-[#C75F33]/50 transition-all group overflow-hidden p-1.5 md:p-2 flex items-end"
+            >
+              <textarea 
+                ref={textareaRef}
                 value={inputValue} 
-                onChange={(e) => setInputValue(e.target.value)} 
+                onChange={(e) => {
+
+                  setInputValue(e.target.value);
+                  // Auto-resize
+                  e.target.style.height = 'auto';
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Type a belief or habit..." 
-                className="w-full bg-transparent text-white pl-4 md:pl-6 pr-14 md:pr-16 py-3 md:py-4 outline-none placeholder:text-[#8e9299]/60 text-base md:text-lg" 
+                rows={1}
+                className="w-full bg-transparent text-white pl-4 md:pl-6 pr-14 md:pr-16 py-3 md:py-4 outline-none placeholder:text-[#8e9299]/60 text-base md:text-lg resize-none max-h-[200px] custom-scrollbar" 
               />
-              <div className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2">
-                <button type="submit" disabled={!inputValue.trim() || isTyping || !currentSessionId} className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-[#C75F33] hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed transform active:scale-90 shadow-xl group">
+              <div className="absolute right-2 md:right-3 bottom-2 md:bottom-3">
+                <button 
+                  type="submit" 
+                  disabled={!inputValue.trim() || isTyping || !currentSessionId} 
+                  className="w-10 h-10 md:w-12 md:h-12 bg-white text-black rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-[#C75F33] hover:text-white transition-all disabled:opacity-20 disabled:cursor-not-allowed transform active:scale-90 shadow-xl group"
+                >
                   <ArrowRight size={20} className="md:w-6 md:h-6 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </div>

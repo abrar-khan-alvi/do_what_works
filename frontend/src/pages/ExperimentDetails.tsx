@@ -11,7 +11,11 @@ import { useExperiments } from '../components/ExperimentContext';
 import { motion } from 'framer-motion';
 import { ConfirmModal } from '../components/ConfirmModal';
 
+import { useAccess } from '../components/AccessContext';
+import { FeatureLock } from '../components/FeatureLock';
+
 export const ExperimentDetails = () => {
+  const { isSubscribed } = useAccess();
   const { id } = useParams();
   const navigate = useNavigate();
   const { experiments, deleteExperiment, fetchExperiments } = useExperiments();
@@ -115,8 +119,9 @@ export const ExperimentDetails = () => {
   }).join(' ');
 
   return (
-    <DashboardLayout>
-      <div className="max-w-5xl mx-auto w-full pb-12">
+    <DashboardLayout noPadding>
+      <div className={`w-full flex-1 flex flex-col relative min-h-0 p-4 md:p-8 ${!isSubscribed ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
+        <div className="max-w-5xl mx-auto w-full pb-12">
         
         {/* Navigation & Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -466,6 +471,16 @@ export const ExperimentDetails = () => {
            )}
         </div>
 
+        </div>
+        
+        {/* Subscription Lock Overlay */}
+        {!isSubscribed && (
+          <FeatureLock 
+            title="Archive Protocol Suspended"
+            description="Your experimental evidence and strategist verdicts are securely archived. Reactivate your elite credentials to access this analysis."
+            icon={TrendingUp}
+          />
+        )}
       </div>
 
       <ConfirmModal

@@ -47,16 +47,17 @@ class Experiment(models.Model):
 
 
 class DailyLog(models.Model):
-    COMPLETED_CHOICES = [('yes', 'Yes'), ('no', 'No')]
+    COMPLETED_CHOICES = [('yes', 'Yes'), ('no', 'No'), ('pending', 'Pending')]
 
     experiment = models.ForeignKey(
         Experiment, on_delete=models.CASCADE, related_name='logs'
     )
     date = models.DateField()
-    completed = models.CharField(max_length=3, choices=COMPLETED_CHOICES)
-    metric_value = models.PositiveSmallIntegerField(default=5)  # 1-10
+    completed = models.CharField(max_length=10, choices=COMPLETED_CHOICES, default='pending')
+    metric_value = models.PositiveSmallIntegerField(default=5)
     notes = models.TextField(blank=True)
     daily_observation = models.TextField(blank=True)
+    ai_suggestion = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
