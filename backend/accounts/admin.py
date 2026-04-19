@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CustomUser, PendingRegistration, PasswordResetToken, UserOnboarding, Subscription
+from .models import CustomUser, PendingRegistration, PasswordResetToken, UserOnboarding, Subscription, Notification
 
 
 @admin.register(CustomUser)
@@ -33,3 +33,11 @@ class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['user', 'is_active', 'expires_at', 'days_remaining', 'activated_at']
     list_filter = ['is_active']
     search_fields = ['user__email']
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'title', 'notif_type', 'is_read', 'created_at']
+    list_filter = ['notif_type', 'is_read', 'created_at']
+    search_fields = ['user__email', 'user__username', 'title', 'message']
+    readonly_fields = ['created_at']
