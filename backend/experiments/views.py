@@ -211,6 +211,10 @@ class ExperimentDetailView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        if new_status == 'active':
+            experiment.ai_analysis = None
+            experiment.logs.all().delete() # Clear logs for a fresh start
+        
         experiment.status = new_status
         experiment.save()
         return Response(ExperimentDetailSerializer(experiment).data)

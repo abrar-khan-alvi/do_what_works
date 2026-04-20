@@ -2,7 +2,7 @@ import React from 'react';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { 
   ArrowLeft, ArrowRight, Trash2, Calendar, Target, 
-  TrendingUp, CheckCircle2, XCircle, Clock, Brain, Sparkles, Loader2 
+  TrendingUp, CheckCircle2, XCircle, Clock, Brain, Sparkles, Loader2, RotateCcw, RefreshCw 
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../services/api';
@@ -20,7 +20,13 @@ export const ExperimentDetails = () => {
   const navigate = useNavigate();
   const { experiments, deleteExperiment, fetchExperiments } = useExperiments();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isRestartModalOpen, setIsRestartModalOpen] = React.useState(false);
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
+  const [restartError, setRestartError] = React.useState<string | null>(null);
+  const [analysisError, setAnalysisError] = React.useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = React.useState(false);
+  const [serverErrorMessage, setServerErrorMessage] = React.useState('');
+  const [isRestarting, setIsRestarting] = React.useState(false);
   
   const experiment = experiments.find(e => e.id === id);
 
@@ -50,15 +56,39 @@ export const ExperimentDetails = () => {
   };
 
   const handleRequestAnalysis = async () => {
+    setAnalysisError(null);
     setIsAnalyzing(true);
     try {
       await api.post(`/api/v1/experiments/${experiment.id}/analyze/`);
       await fetchExperiments(); // Refresh to get the analysis
-    } catch (err) {
+    } catch (err: any) {
       console.error('Analysis failed:', err);
-      alert('Analysis failed. Please check your connection or try again later.');
+      setAnalysisError(err.response?.data?.error || 'Analysis failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+  
+  const handleRestart = () => {
+    setRestartError(null);
+    setIsRestartModalOpen(true);
+  };
+
+  const confirmRestart = async () => {
+    setRestartError(null);
+    setIsRestarting(true);
+    try {
+      await api.patch(`/api/v1/experiments/${experiment.id}/`, { status: 'active' });
+      await fetchExperiments();
+      setIsRestartModalOpen(false);
+      navigate('/daily-log');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to restart experiment';
+      setServerErrorMessage(msg);
+      setIsRestartModalOpen(false);
+      setShowErrorModal(true);
+    } finally {
+      setIsRestarting(false);
     }
   };
 
@@ -153,6 +183,16 @@ export const ExperimentDetails = () => {
                 Refine Protocol
               </button>
             )}
+            {experiment.status === 'completed' && (
+              <button 
+                onClick={handleRestart}
+                disabled={isRestarting}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all text-xs font-bold uppercase tracking-widest"
+              >
+                {isRestarting ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />}
+                Restart
+              </button>
+            )}
             <button 
               onClick={handleDelete}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#ef4444]/10 border border-[#ef4444]/20 text-[#ef4444] hover:bg-[#ef4444]/20 transition-colors text-xs font-bold uppercase tracking-widest"
@@ -226,9 +266,14 @@ export const ExperimentDetails = () => {
                   <Brain size={32} />
                 </div>
                 <h2 className="text-xl font-bold text-white mb-2">Ready for Strategy?</h2>
-                <p className="text-[#8e9299] max-w-sm mx-auto mb-8 text-sm leading-relaxed">
+                <p className="text-[#8e9299] max-w-sm mx-auto mb-6 text-sm leading-relaxed">
                   Your experiment is complete. Let Daniel analyze the contrast between your beliefs and your performance.
                 </p>
+                {analysisError && (
+                  <div className="mb-6 bg-red-500/10 border border-red-500/20 p-3 rounded-xl text-red-500 text-[10px] font-bold uppercase tracking-widest max-w-sm mx-auto">
+                    {analysisError}
+                  </div>
+                )}
                 <button 
                   onClick={handleRequestAnalysis}
                   disabled={isAnalyzing}
@@ -253,6 +298,14 @@ export const ExperimentDetails = () => {
                   <div className="flex items-center gap-3">
                     <Brain size={20} className="text-[#C75F33]" />
                     <span className="text-xs font-black uppercase tracking-[0.2em] text-[#C75F33]">Daniel's Tactical Verdict</span>
+                    <button 
+                      onClick={handleRequestAnalysis}
+                      disabled={isAnalyzing}
+                      className="ml-2 p-1 hover:bg-white/10 rounded transition-colors"
+                      title="Regenerate Analysis"
+                    >
+                      <RefreshCw size={12} className={isAnalyzing ? 'animate-spin' : 'opacity-40 hover:opacity-100'} />
+                    </button>
                   </div>
                   <div className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                     experiment.aiAnalysis.verdict === 'Validated' ? 'bg-[#10b981]/20 text-[#10b981]' :
@@ -429,6 +482,16 @@ export const ExperimentDetails = () => {
                            <span className="text-sm font-bold text-white">Day {experiment.logs.length - index}</span>
                            <span className="text-[10px] text-[#8e9299] font-medium">• {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                          </div>
+                         
+                         {log.aiSuggestion && (
+                           <div className="flex items-center gap-2 py-1 px-2 bg-[#C75F33]/5 border border-[#C75F33]/10 rounded-lg w-fit mb-1">
+                              <Sparkles size={10} className="text-[#C75F33]" />
+                              <span className="text-[10px] font-bold text-[#C75F33] uppercase tracking-widest">
+                                Daniel's Pivot: <span className="text-[#8e9299] lowercase font-medium italic">"{log.aiSuggestion}"</span>
+                              </span>
+                           </div>
+                         )}
+
                          <p className="text-sm text-[#8e9299] italic leading-relaxed">
                             {log.notes || "No protocol notes recorded."}
                          </p>
@@ -490,6 +553,33 @@ export const ExperimentDetails = () => {
         title="Delete Experiment"
         message="Are you sure you want to delete this experiment and all its data? This action cannot be undone."
         confirmText="Delete"
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={isRestartModalOpen}
+        onClose={() => setIsRestartModalOpen(false)}
+        onConfirm={confirmRestart}
+        title="Fresh Start"
+        message="This will clear all your daily logs and the AI strategist's verdict for this experiment. Are you sure you want to start over?"
+        confirmText="Restart Experiment"
+        variant="primary"
+      />
+
+      <ConfirmModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        onConfirm={() => setShowErrorModal(false)}
+        title="Protocol Conflict"
+        message={
+          <div className="space-y-4">
+            <p className="text-[#8e9299] text-sm">Daniel has blocked this action to maintain data integrity:</p>
+            <div className="bg-[#ef4444]/10 border border-[#ef4444]/20 p-4 rounded-xl text-[#ef4444] text-xs font-bold leading-relaxed">
+              {serverErrorMessage}
+            </div>
+          </div>
+        }
+        confirmText="Acknowledged"
         variant="danger"
       />
     </DashboardLayout>

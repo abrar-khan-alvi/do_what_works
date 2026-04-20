@@ -30,7 +30,8 @@ def trigger_ai_analysis(experiment):
                 "completed": log.completed,
                 "score": log.metric_value,
                 "notes": log.notes,
-                "observation": log.daily_observation
+                "observation": log.daily_observation,
+                "ai_suggestion": log.ai_suggestion
             }
             for log in experiment.logs.all().order_by('date')
         ]
@@ -108,7 +109,8 @@ def trigger_daily_action(experiment, log):
                 "completed": l.completed,
                 "score": l.metric_value,
                 "notes": l.notes,
-                "observation": l.daily_observation
+                "observation": l.daily_observation,
+                "previous_suggestion": l.ai_suggestion
             }
             for l in experiment.logs.all().order_by('date')
         ]

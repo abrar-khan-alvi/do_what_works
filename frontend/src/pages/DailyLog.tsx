@@ -49,7 +49,6 @@ export const DailyLog = () => {
     if (!activeExperiment) return;
     setIsGeneratingAction(true);
     await generateDailyAction(activeExperiment.id);
-    setIsGeneratingAction(true); // Keep the 'just generated' feel or let it refresh
     setTimeout(() => setIsGeneratingAction(false), 1000);
   };
 
