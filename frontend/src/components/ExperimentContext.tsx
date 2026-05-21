@@ -7,6 +7,7 @@ export interface DailyLogEntry {
   date: string;
   completed: 'yes' | 'no' | 'pending';
   metricValue: number;
+  loggedMetrics?: any;
   notes: string;
   dailyObservation: string;
   aiSuggestion?: string;
@@ -27,13 +28,14 @@ export interface Experiment {
     analysis: string;
     recommendation: string;
   };
+  metricsConfig?: any;
 }
 
 interface ExperimentContextType {
   experiments: Experiment[];
   activeExperiment: Experiment | null;
   isLoading: boolean;
-  launchExperiment: (data: Omit<Experiment, 'id' | 'startDate' | 'status' | 'logs'>) => Promise<void>;
+  launchExperiment: (data: Omit<Experiment, 'id' | 'startDate' | 'status' | 'logs'> & { metricsConfig?: any }) => Promise<void>;
   logToday: (experimentId: string, entry: Omit<DailyLogEntry, 'id' | 'date'>) => Promise<void>;
   hasLoggedToday: (experimentId: string) => boolean;
   getTodayLog: (experimentId: string) => DailyLogEntry | null;
@@ -45,12 +47,12 @@ interface ExperimentContextType {
 
 const ExperimentContext = createContext<ExperimentContextType | undefined>(undefined);
 
-/** Map API log object to internal DailyLogEntry */
 const mapLog = (l: any): DailyLogEntry => ({
   id: String(l.id),
   date: l.date,
-  completed: l.completed as 'yes' | 'no',
+  completed: l.completed as 'yes' | 'no' | 'pending',
   metricValue: l.metric_value,
+  loggedMetrics: l.logged_metrics || null,
   notes: l.notes || '',
   dailyObservation: l.daily_observation || '',
   aiSuggestion: l.ai_suggestion || '',
@@ -67,6 +69,7 @@ const mapExperiment = (e: any): Experiment => ({
   status: e.status as 'active' | 'queued' | 'completed' | 'abandoned',
   logs: (e.logs || []).map(mapLog),
   aiAnalysis: e.ai_analysis,
+  metricsConfig: e.metrics_config || null,
 });
 
 export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -106,19 +109,17 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const activeExperiment = experiments.find(e => e.status === 'active') || null;
 
-  const launchExperiment = useCallback(async (data: Omit<Experiment, 'id' | 'startDate' | 'status' | 'logs'>) => {
+  const launchExperiment = useCallback(async (data: Omit<Experiment, 'id' | 'startDate' | 'status' | 'logs'> & { metricsConfig?: any }) => {
     try {
       const res = await api.post('/api/v1/experiments/', {
         hypothesis: data.hypothesis,
         action: data.action,
         metric: data.metric,
         duration_days: data.durationDays,
+        metrics_config: data.metricsConfig,
       });
       const newExperiment = mapExperiment(res.data);
       setExperiments(prev => [...prev, newExperiment]);
-      
-      // If we launched a queued experiment, we don't need to do anything else locally
-      // because the backend handles the status assignment.
     } catch (err) {
       console.error('Failed to launch experiment:', err);
       throw err;
@@ -131,20 +132,18 @@ export const ExperimentProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       await api.post(`/api/v1/experiments/${experimentId}/logs/`, {
         completed: entry.completed,
         metric_value: entry.metricValue,
+        logged_metrics: entry.loggedMetrics,
         notes: entry.notes,
         daily_observation: entry.dailyObservation,
         date: today,
       });
-      
-      // IMPORTANT: After logging, we fetch everything again.
-      // This ensures that if the experiment was completed and a new one was activated,
-      // the frontend state is perfectly in sync with the backend succession.
       await fetchExperiments();
     } catch (err) {
       console.error('Failed to log daily mission:', err);
       throw err;
     }
   }, [fetchExperiments]);
+
 
   const hasLoggedToday = useCallback((experimentId: string) => {
     const today = new Date().toISOString().split('T')[0];

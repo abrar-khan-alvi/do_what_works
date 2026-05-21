@@ -92,6 +92,10 @@ class UserOnboarding(models.Model):
         primary_key=True,
     )
     answers = models.JSONField(default=dict)
+    attention_score = models.FloatField(null=True, blank=True)
+    capacity_score = models.IntegerField(null=True, blank=True)
+    control_score = models.FloatField(null=True, blank=True)
+    endurance_score = models.FloatField(null=True, blank=True)
     completed_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

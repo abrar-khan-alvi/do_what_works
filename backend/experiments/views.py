@@ -15,6 +15,7 @@ from .serializers import (
     ExperimentStatusSerializer,
 )
 from .services import trigger_ai_analysis, trigger_daily_action
+from .templates_config import EXPERIMENT_TEMPLATES
 
 
 # ─────────────────────────────────────────────
@@ -260,6 +261,7 @@ class DailyLogView(APIView):
             defaults={
                 'completed': serializer.validated_data['completed'],
                 'metric_value': serializer.validated_data.get('metric_value', 5),
+                'logged_metrics': serializer.validated_data.get('logged_metrics', {}),
                 'notes': serializer.validated_data.get('notes', ''),
                 'daily_observation': serializer.validated_data.get('daily_observation', ''),
             }
@@ -336,3 +338,10 @@ class ExperimentDailyActionView(APIView):
             )
         except Experiment.DoesNotExist:
             return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ExperimentTemplatesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(EXPERIMENT_TEMPLATES)

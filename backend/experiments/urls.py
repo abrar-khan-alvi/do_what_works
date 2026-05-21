@@ -8,6 +8,7 @@ urlpatterns = [
     path('chat/sessions/<int:pk>/messages/', views.ChatMessageListCreateView.as_view(), name='chat-messages'),
 
     # Experiments
+    path('experiments/templates/', views.ExperimentTemplatesView.as_view(), name='experiment-templates'),
     path('experiments/', views.ExperimentListCreateView.as_view(), name='experiments'),
     path('experiments/<int:pk>/', views.ExperimentDetailView.as_view(), name='experiment-detail'),
     path('experiments/<int:pk>/logs/', views.DailyLogView.as_view(), name='experiment-logs'),

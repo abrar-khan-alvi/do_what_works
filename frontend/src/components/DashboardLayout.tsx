@@ -91,6 +91,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
   const navItems = [
     { name: 'Overview', path: '/overview', icon: Brain },
     { name: 'Daniel', path: '/daniel', icon: MessageCircle },
+    { name: 'The Lab', path: '/experiment', icon: FlaskConical },
     { name: 'Result', path: '/result', icon: Folder },
     { name: 'Daily Log', path: '/daily-log', icon: Calendar },
     { name: 'Subscription', path: '/subscription', icon: CreditCard },

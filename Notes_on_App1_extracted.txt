@@ -1,0 +1,281 @@
+Notes on App. 
+
+NEED AND ATTENTION TEST TO BE ADDED TO THE DIG: 
+Attention Baseline Battery — 3–5 minutes
+1. Digit Span = CapacityCan the mind hold a thread?
+Show number sequence. 
+User repeats it. 
+Increase length until failure. 
+Score: longest correct span. 
+2. Stroop = ControlCan the mind resist the wrong impulse?
+Show color words in mismatched colors. 
+User taps the ink color, not the word. 
+Score: time + errors. 
+3. Short CPT = EnduranceCan the mind stay alert without drifting?
+Flash letters/symbols. 
+User taps only target item. 
+Score: misses + false taps + reaction time. 
+This gives you a clean first version:
+Attention Score v1 =
+33% Capacity 
+33% Control 
+34% Endurance 
+Simple. Defensible. Easy to explain.
+**Later we should be able to incorporate phone usage, and incorporate that into a daily score based on Phone usage data, and perhaps even biometrics coming from a smart watch. 
+
+That is the bridge.
+Phase 1: manual cognitive baselinePhase 2: add phone behaviorPhase 3: add sleep / HRV / steps / workoutsPhase 4: Daniel connects it to experiments.
+
+
+
+NEED A BATTERY OF SIMPLE TESTS THAT USER CAN LOOK TO AT START TO KEEP SIMPLE> 
+
+Your First Battery (10 Core Tests)
+These are designed to hit:
+Attention 
+Discipline 
+Energy 
+Social baseline 
+No fluff.
+
+1. No Social Media After 8PM (7 days)
+Type: RemovalGoal: Improve sleep + attention
+Track:
+Sleep quality (1–10) 
+Morning clarity (1–10) 
+Screen time at night 
+
+2. Wake Up Same Time Daily (7 days)
+Type: ConstraintGoal: Stabilize rhythm + discipline
+Track:
+Wake time consistency 
+Energy (1–10) 
+Mood (1–10) 
+
+3. Phone Outside Bedroom (7 days)
+Type: RemovalGoal: Reduce impulse use + improve sleep
+Track:
+Night phone usage (yes/no) 
+Sleep quality 
+Urge level (1–10) 
+
+4. 90-Minute Deep Work Block (5 days)
+Type: ConstraintGoal: Build focus capacity
+Track:
+Completed block (yes/no) 
+Interruptions (#) 
+Focus rating (1–10) 
+
+5. 10,000 Steps Daily (7 days)
+Type: AdditionGoal: Increase baseline energy
+Track:
+Steps 
+Energy 
+Mood 
+
+6. Protein-First Diet (7 days)
+Type: SubstitutionGoal: Stabilize energy + reduce crashes
+Rule:Eat protein first in every meal
+Track:
+Compliance (yes/no) 
+Energy 
+Hunger swings 
+
+7. 10-Minute Meditation (7 days)
+Type: AdditionGoal: Improve internal regulation
+Track:
+Completed (yes/no) 
+Calmness (1–10) 
+Focus (1–10) 
+
+8. No Complaining (5 days)
+Type: ConstraintGoal: Shift mental patterns
+Track:
+Violations (#) 
+Awareness level (1–10) 
+Mood 
+
+9. 1 Real Interaction Daily (7 days)
+Type: ExposureGoal: Improve social baseline
+Rule:At least one real (non-transactional) interaction
+Track:
+Completed (yes/no) 
+Comfort level (1–10) 
+Energy after 
+
+10. Daily Physical Training (5 days)
+Type: AdditionGoal: Discipline + physical activation
+Rule:Minimum 20 minutes movement
+Track:
+Completed (yes/no) 
+Intensity (1–10) 
+Energy after
+
+SOCIAL INTERACTION TESTS 
+
+Add a Social Activity Layer (but structured)
+Think of social not as one test—but a progression:
+Level 1 → basic exposure 
+Level 2 → engagement 
+Level 3 → initiative 
+
+🔹 Here are strong Social Tests (clean + usable)
+1. 3 Micro Interactions Daily (5 days)
+Type: Exposure (low friction)Goal: Break avoidance
+Rule:
+Say something to 3 people (cashier, barista, gym, etc.) 
+Track:
+Completed (yes/no) 
+Anxiety before (1–10) 
+Energy after (1–10) 
+👉 This is your entry point test
+
+2. Extend One Conversation (5 days)
+Type: EngagementGoal: Build conversational depth
+Rule:
+Take one interaction beyond surface level 
+Example:
+Ask a follow-up question 
+Add a personal comment 
+Track:
+Completed 
+Comfort (1–10) 
+Quality (1–10) 
+
+3. Initiate One Plan (5 days)
+Type: InitiativeGoal: Move from passive → active
+Rule:
+Invite someone to something(coffee, walk, gym, etc.) 
+Track:
+Attempted (yes/no) 
+Outcome (accepted/rejected) 
+Emotional response 
+👉 This is a high-leverage identity test
+
+4. Go Out Alone Once (7 days)
+Type: ExposureGoal: Independence + presence
+Rule:
+Go to a social environment alone(bar, café, event) 
+Track:
+Time spent 
+Interactions (#) 
+Comfort level 
+
+5. No Phone in Social Settings (5 days)
+Type: ConstraintGoal: Increase presence
+Rule:
+No phone while around people 
+Track:
+Compliance 
+Awareness 
+Interaction quality 
+
+6. 10 Messages Outbound (5 days)
+Type: VolumeGoal: Increase social pipeline
+Rule:
+Send 10 messages (friends, dating, etc.) 
+Track:
+Sent (#) 
+Replies (#) 
+Conversations started 
+
+7. Give 1 Genuine Compliment Daily (5 days)
+Type: Positive engagementGoal: Shift mindset + connection
+Track:
+Completed 
+Reaction 
+Internal feeling 
+
+🔹 How this fits your system
+These tests hit:
+Avoidance 
+Confidence 
+Initiative 
+Presence 
+And most importantly:
+They are observable and uncomfortable enough to create change
+
+🔴 Important Design Rule
+Don’t assign multiple heavy social tests at once.
+Example:
+❌ Bad:
+Go out alone 
+Initiate plans 
+3 interactions 
+👉 Overload → avoidance
+
+✅ Good:
+Daniel assigns:
+“3 micro interactions” 
+OR “Initiate one plan” 
+Not both at high intensity.
+
+🔹 Where this gets powerful
+Over time, you’ll see patterns like:
+User avoids initiation → fear of rejection 
+User does volume but no depth → surface behavior 
+User stays passive → low agency 
+Then Daniel can say:
+“You’re avoiding initiative. Run this.”
+Now it becomes:
+Behavioral diagnosis → targeted exposure
+
+
+*******INTIALLY, DANIEL SHOULD PRESCRIBE TESTS BASED ON WHAT “THE DIG SAYS.” Basically take from the battery of tests and assign. Probably no more than 3 at a time. Maybe simpler tests at first, and then getting to more complicated tests. Almost like a ladder. And the belief map should change accordingly. 
+ADDITIONALLY, DANIEL should ask if there is any other belief that troubles the user and that should be tested. The Test should be simple, and allow for simple input thought. 
+
+
+
+
+
+
+
+
+
+
+
+DESIGN:
+
+
+Also, notice the categories. This makes it simpler to understand for the user.
+See Below. 
+
+
+Basically making the categories or dimensions simpler. 
+
+For example, below is my Belief Map. 
+
+
+So categories should be like this:
+
+CATEGORY SIMPLIFICATION
+Keep your structure, sharpen wording:
+Control → Do I Take Control? 
+Capability → Can I Figure It Out? 
+Adaptability → Do I Adjust? 
+Awareness → Am I Aware? 
+Execution → Do I Act? 
+Truth → Do I Face Reality? 
+Fate → Do I Wait? 
+Blame → Do I Blame Outside? 
+Energy → Do I Rely on Vibes? 
+Avoidance → Do I Avoid Action? 
+Intuition → Do I Trust Feelings Over Facts?
+
+THINK we May need to tighten to:
+Here’s the tightened version:
+Do I Take Control? 
+Can I Figure It Out? 
+Do I Adjust? 
+Do I Catch Myself? 
+Do I Act? 
+Do I Face Reality? 
+Do I Avoid Action? ✅ (replaces “Do I Wait?”) 
+Do I Blame Outside? 
+Do I Rely on Vibes? 
+Do I Trust Feelings Over Facts?
+*Want to get your thoughts on that. 
+Wondering, whether the below Dashboard makes more sense:
+
+
+This may be a better model. For the home screen. 

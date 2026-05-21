@@ -35,6 +35,7 @@ class Experiment(models.Model):
     duration_days = models.PositiveIntegerField()
     start_date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    metrics_config = models.JSONField(null=True, blank=True)  # Structure of logged metrics
     ai_analysis = models.JSONField(null=True, blank=True)  # Stores score, verdict, analysis, feedback
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -55,6 +56,7 @@ class DailyLog(models.Model):
     date = models.DateField()
     completed = models.CharField(max_length=10, choices=COMPLETED_CHOICES, default='pending')
     metric_value = models.PositiveSmallIntegerField(default=5)
+    logged_metrics = models.JSONField(default=dict)  # Stores actual logs per the metrics_config
     notes = models.TextField(blank=True)
     daily_observation = models.TextField(blank=True)
     ai_suggestion = models.TextField(null=True, blank=True)

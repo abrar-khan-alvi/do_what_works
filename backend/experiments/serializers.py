@@ -21,7 +21,7 @@ class ChatSessionDetailSerializer(serializers.ModelSerializer):
 class DailyLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyLog
-        fields = ['id', 'date', 'completed', 'metric_value', 'notes', 'daily_observation', 'ai_suggestion', 'created_at']
+        fields = ['id', 'date', 'completed', 'metric_value', 'logged_metrics', 'notes', 'daily_observation', 'ai_suggestion', 'created_at']
         read_only_fields = ['id', 'created_at', 'ai_suggestion']
 
 
@@ -32,7 +32,7 @@ class ExperimentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experiment
         fields = ['id', 'hypothesis', 'action', 'metric', 'duration_days',
-                  'start_date', 'status', 'logs_count', 'created_at']
+                  'start_date', 'status', 'metrics_config', 'logs_count', 'created_at']
         read_only_fields = ['id', 'start_date', 'created_at']
 
 
@@ -43,14 +43,14 @@ class ExperimentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experiment
         fields = ['id', 'hypothesis', 'action', 'metric', 'duration_days',
-                  'start_date', 'status', 'logs', 'ai_analysis', 'created_at', 'updated_at']
+                  'start_date', 'status', 'metrics_config', 'logs', 'ai_analysis', 'created_at', 'updated_at']
         read_only_fields = ['id', 'start_date', 'created_at', 'updated_at']
 
 
 class ExperimentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experiment
-        fields = ['hypothesis', 'action', 'metric', 'duration_days']
+        fields = ['hypothesis', 'action', 'metric', 'duration_days', 'metrics_config']
 
 
 class ExperimentStatusSerializer(serializers.ModelSerializer):

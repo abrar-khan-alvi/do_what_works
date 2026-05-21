@@ -265,41 +265,64 @@ class OnboardingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        """Return onboarding answers for the logged-in user, or empty if not yet completed."""
+        """Return onboarding answers and cognitive scores for the logged-in user, or empty if not yet completed."""
         try:
             profile = UserOnboarding.objects.get(user=request.user)
             return Response({
                 'has_completed_onboarding': request.user.has_completed_onboarding,
                 'answers': profile.answers,
+                'attention_score': profile.attention_score,
+                'capacity_score': profile.capacity_score,
+                'control_score': profile.control_score,
+                'endurance_score': profile.endurance_score,
                 'completed_at': profile.completed_at,
             }, status=status.HTTP_200_OK)
         except UserOnboarding.DoesNotExist:
             return Response({
                 'has_completed_onboarding': False,
                 'answers': {},
+                'attention_score': None,
+                'capacity_score': None,
+                'control_score': None,
+                'endurance_score': None,
             }, status=status.HTTP_200_OK)
 
     def post(self, request):
-        """Save onboarding answers and mark user onboarding as complete."""
+        """Save onboarding answers and/or attention battery scores."""
         serializer = OnboardingSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        answers = serializer.validated_data['answers']
+        defaults = {}
+        if 'answers' in serializer.validated_data:
+            defaults['answers'] = serializer.validated_data['answers']
+        if 'attention_score' in serializer.validated_data:
+            defaults['attention_score'] = serializer.validated_data['attention_score']
+        if 'capacity_score' in serializer.validated_data:
+            defaults['capacity_score'] = serializer.validated_data['capacity_score']
+        if 'control_score' in serializer.validated_data:
+            defaults['control_score'] = serializer.validated_data['control_score']
+        if 'endurance_score' in serializer.validated_data:
+            defaults['endurance_score'] = serializer.validated_data['endurance_score']
 
         # Upsert the onboarding profile
-        UserOnboarding.objects.update_or_create(
+        profile, created = UserOnboarding.objects.update_or_create(
             user=request.user,
-            defaults={'answers': answers}
+            defaults=defaults
         )
 
-        # Mark the user as having completed onboarding
-        request.user.has_completed_onboarding = True
-        request.user.save(update_fields=['has_completed_onboarding'])
+        # Mark the user as having completed onboarding if answers were submitted
+        if 'answers' in serializer.validated_data:
+            request.user.has_completed_onboarding = True
+            request.user.save(update_fields=['has_completed_onboarding'])
 
         return Response({
             'message': 'Onboarding profile saved successfully.',
-            'has_completed_onboarding': True,
+            'has_completed_onboarding': request.user.has_completed_onboarding,
+            'attention_score': profile.attention_score,
+            'capacity_score': profile.capacity_score,
+            'control_score': profile.control_score,
+            'endurance_score': profile.endurance_score,
         }, status=status.HTTP_200_OK)
 
 

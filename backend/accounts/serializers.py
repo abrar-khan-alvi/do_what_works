@@ -71,9 +71,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class OnboardingSerializer(serializers.Serializer):
     answers = serializers.DictField(
+        required=False,
         child=serializers.IntegerField(min_value=0, max_value=4),
         help_text='Map of question_id to answer index (0-4)'
     )
+    attention_score = serializers.FloatField(required=False, allow_null=True)
+    capacity_score = serializers.IntegerField(required=False, allow_null=True)
+    control_score = serializers.FloatField(required=False, allow_null=True)
+    endurance_score = serializers.FloatField(required=False, allow_null=True)
 
 
 class SubscriptionSerializer(serializers.Serializer):

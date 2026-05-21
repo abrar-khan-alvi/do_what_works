@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
@@ -15,6 +15,7 @@ import { api } from '../services/api';
 import { steps } from './Onboarding';
 import { useAccess } from '../components/AccessContext';
 import { SubscriptionModal } from '../components/SubscriptionModal';
+import { AttentionBattery } from '../components/AttentionBattery';
 
 import { DashboardLayout } from '../components/DashboardLayout';
 
@@ -41,6 +42,18 @@ export const Overview = () => {
   const [onboardingData, setOnboardingData] = useState<any>(null);
   const [isLoadingOnboarding, setIsLoadingOnboarding] = useState(true);
   const [showLockModal, setShowLockModal] = useState(false);
+  const [showAttentionBatteryModal, setShowAttentionBatteryModal] = useState(false);
+
+  const handleAttentionComplete = (scores: any) => {
+    setOnboardingData((prev: any) => ({
+      ...prev,
+      attention_score: scores.attention_score,
+      capacity_score: scores.capacity_score,
+      control_score: scores.control_score,
+      endurance_score: scores.endurance_score,
+    }));
+    setShowAttentionBatteryModal(false);
+  };
 
   const handlePremiumClick = (callback: () => void) => {
     if (isSubscribed) {
@@ -82,12 +95,12 @@ export const Overview = () => {
     if (!onboardingData || !onboardingData.answers) {
       // Fallback to high-fidelity placeholders if no data exists
       return [
-        { name: 'Control', score: 85, color: '#C75F33' },
-        { name: 'Capability', score: 72, color: '#C75F33' },
-        { name: 'Adaptability', score: 91, color: '#8b5cf6' },
-        { name: 'Awareness', score: 65, color: '#C75F33' },
-        { name: 'Execution', score: 78, color: '#8b5cf6' },
-        { name: 'Truth', score: 88, color: '#C75F33' },
+        { name: 'Do I Take Control?', score: 85, color: '#C75F33' },
+        { name: 'Can I Figure It Out?', score: 72, color: '#C75F33' },
+        { name: 'Do I Adjust?', score: 91, color: '#8b5cf6' },
+        { name: 'Do I Catch Myself?', score: 65, color: '#C75F33' },
+        { name: 'Do I Act?', score: 78, color: '#8b5cf6' },
+        { name: 'Do I Face Reality?', score: 88, color: '#C75F33' },
       ];
     }
 
@@ -148,6 +161,58 @@ export const Overview = () => {
           ))}
         </div>
 
+        {/* Cognitive Baseline Summary Card */}
+        <motion.div
+          variants={fadeUp}
+          className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 md:p-8 backdrop-blur-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+        >
+          <div className="flex items-center gap-5">
+            <div className="p-4 rounded-3xl bg-[#C75F33]/15 text-[#C75F33] border border-[#C75F33]/20 flex-shrink-0">
+              <Brain size={32} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                Cognitive Baseline
+              </h2>
+              <p className="text-xs text-[#8e9299] max-w-md">
+                Your baseline attention metrics help tailor the feedback loops and analyze experiment results.
+              </p>
+            </div>
+          </div>
+
+          <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-6 flex-grow justify-end">
+            {onboardingData?.attention_score ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-grow max-w-lg">
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Overall</div>
+                  <div className="text-sm font-black text-white">{onboardingData.attention_score}/100</div>
+                </div>
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Memory</div>
+                  <div className="text-sm font-black text-[#8b5cf6]">{onboardingData.capacity_score} <span className="text-[10px] font-medium text-[#8e9299]">digits</span></div>
+                </div>
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Control</div>
+                  <div className="text-sm font-black text-[#10b981]">{onboardingData.control_score}%</div>
+                </div>
+                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Endurance</div>
+                  <div className="text-sm font-black text-yellow-500">{onboardingData.endurance_score}%</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm font-medium text-[#8e9299] italic">No cognitive baseline recorded yet.</div>
+            )}
+
+            <button
+              onClick={() => setShowAttentionBatteryModal(true)}
+              className="px-6 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm whitespace-nowrap shadow-xl shadow-white/5"
+            >
+              {onboardingData?.attention_score ? 'Retest Baseline' : 'Start Assessment'}
+            </button>
+          </div>
+        </motion.div>
+
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -165,7 +230,7 @@ export const Overview = () => {
             </div>
 
             <div className="h-[350px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={trendData}>
                   <defs>
                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
@@ -221,7 +286,7 @@ export const Overview = () => {
             </div>
 
             <div className="h-[430px] w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={processedBeliefData}>
                   <PolarGrid stroke="rgba(255,255,255,0.05)" />
                   <PolarAngleAxis
@@ -418,6 +483,36 @@ export const Overview = () => {
         isOpen={showLockModal} 
         onClose={() => setShowLockModal(false)} 
       />
+
+      <AnimatePresence>
+        {showAttentionBatteryModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAttentionBatteryModal(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Container */}
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-2xl z-10"
+            >
+              <AttentionBattery
+                onComplete={handleAttentionComplete}
+                onSkip={() => setShowAttentionBatteryModal(false)}
+                isSkippable={true}
+              />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </DashboardLayout>
   );
 };

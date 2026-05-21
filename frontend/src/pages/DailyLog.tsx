@@ -3,9 +3,9 @@ import { DashboardLayout } from '../components/DashboardLayout';
 import { Check, X, Clock, MessageSquare, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAccess } from '../components/AccessContext';
 import { useExperiments } from '../components/ExperimentContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FeatureLock } from '../components/FeatureLock';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 export const DailyLog = () => {
   const { isSubscribed } = useAccess();
@@ -15,30 +15,74 @@ export const DailyLog = () => {
 
   const [completed, setCompleted] = useState<'yes' | 'no' | null>(null);
   const [score, setScore] = useState(5);
+  const [loggedMetrics, setLoggedMetrics] = useState<Record<string, any>>({});
   const [experimentNotes, setExperimentNotes] = useState('');
   const [dailyNotes, setDailyNotes] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Sync with existing log if day already logged
   useEffect(() => {
-    if (activeExperiment && hasLoggedToday(activeExperiment.id)) {
+    if (activeExperiment) {
       const log = getTodayLog(activeExperiment.id);
-      if (log && log.completed !== 'pending') {
-        setCompleted(log.completed);
-        setScore(log.metricValue);
-        setExperimentNotes(log.notes);
-        setDailyNotes(log.dailyObservation);
-        setIsSubmitted(true);
+      if (log) {
+        if (log.completed !== 'pending') {
+          setCompleted(log.completed);
+          setScore(log.metricValue);
+          setExperimentNotes(log.notes);
+          setDailyNotes(log.dailyObservation);
+          setLoggedMetrics(log.loggedMetrics || {});
+          setIsSubmitted(true);
+        } else {
+          // If pending (AI suggestion generated), prefill notes & custom metrics if any
+          setExperimentNotes(log.notes || '');
+          setDailyNotes(log.dailyObservation || '');
+          if (log.loggedMetrics && Object.keys(log.loggedMetrics).length > 0) {
+            setLoggedMetrics(log.loggedMetrics);
+          } else if (Array.isArray(activeExperiment.metricsConfig)) {
+            const defaults: Record<string, any> = {};
+            activeExperiment.metricsConfig.forEach((m: any) => {
+              defaults[m.id] = m.default !== undefined ? m.default : (m.type === 'boolean' ? false : (m.type === 'integer' ? 0 : 5));
+            });
+            setLoggedMetrics(defaults);
+          }
+        }
+      } else {
+        // Reset state for new logging session
+        setCompleted(null);
+        setScore(5);
+        setExperimentNotes('');
+        setDailyNotes('');
+        setIsSubmitted(false);
+        if (Array.isArray(activeExperiment.metricsConfig)) {
+          const defaults: Record<string, any> = {};
+          activeExperiment.metricsConfig.forEach((m: any) => {
+            defaults[m.id] = m.default !== undefined ? m.default : (m.type === 'boolean' ? false : (m.type === 'integer' ? 0 : 5));
+          });
+          setLoggedMetrics(defaults);
+        } else {
+          setLoggedMetrics({});
+        }
       }
     }
-  }, [activeExperiment, hasLoggedToday, getTodayLog]);
+  }, [activeExperiment, getTodayLog]);
 
   const handleSubmit = () => {
     if (!activeExperiment || !completed) return;
 
+    let finalScore = score;
+    // Calculate final score for compatibility with legacy charts/averages
+    if (Array.isArray(activeExperiment.metricsConfig) && activeExperiment.metricsConfig.length > 0) {
+      const ratings = activeExperiment.metricsConfig.filter((m: any) => m.type === 'rating_1_10');
+      if (ratings.length > 0) {
+        const sum = ratings.reduce((acc: number, m: any) => acc + (loggedMetrics[m.id] || 5), 0);
+        finalScore = Math.round(sum / ratings.length);
+      }
+    }
+
     logToday(activeExperiment.id, {
       completed,
-      metricValue: score,
+      metricValue: finalScore,
+      loggedMetrics,
       notes: experimentNotes,
       dailyObservation: dailyNotes,
     });
@@ -55,7 +99,6 @@ export const DailyLog = () => {
   const todayLog = activeExperiment ? getTodayLog(activeExperiment.id) : null;
   const aiSuggestion = todayLog?.aiSuggestion;
 
-
   const progressPercent = activeExperiment 
     ? Math.round(((activeExperiment.logs.length) / activeExperiment.durationDays) * 100) 
     : 0;
@@ -65,7 +108,7 @@ export const DailyLog = () => {
   return (
     <DashboardLayout noPadding>
       <div className={`w-full flex-1 flex flex-col relative min-h-0 p-4 md:p-8 ${!isSubscribed ? 'h-full overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}>
-        <div className="relative h-full flex flex-col max-w-4xl mx-auto w-full">
+        <div className="relative h-full flex flex-col max-w-4xl mx-auto w-full font-sans">
           
           {/* Header */}
           <div className="mb-8 px-1 md:px-0">
@@ -83,13 +126,13 @@ export const DailyLog = () => {
               </div>
               <h2 className="text-xl font-bold text-white mb-3">No Active Experiment</h2>
               <p className="text-[#8e9299] max-w-md mb-8 leading-relaxed">
-                You don't have an active experiment running. Start a conversation with Daniel to refine your next big idea.
+                You don't have an active experiment running. Start an experiment using our explore library or talk to Daniel first.
               </p>
               <button 
-                onClick={() => navigate('/daniel')}
+                onClick={() => navigate('/experiment')}
                 className="flex items-center gap-2 px-8 py-4 bg-white text-black rounded-2xl font-bold hover:bg-white/90 transition-all active:scale-95"
               >
-                <span>Talk to Daniel</span>
+                <span>Launch an Experiment</span>
                 <ArrowRight size={18} />
               </button>
             </div>
@@ -226,7 +269,6 @@ export const DailyLog = () => {
                     </div>
                   </div>
 
-
                   {/* Binary Completion */}
                   <div className="flex flex-col gap-4">
                     <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest flex items-center justify-between">
@@ -262,33 +304,144 @@ export const DailyLog = () => {
                     </div>
                   </div>
 
-                  {/* Metric Score Slider */}
-                  <div className="flex flex-col gap-6">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
-                        {activeExperiment.metric} Level
-                      </label>
-                      <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
-                        {score}
+                  {/* Dynamic Metrics or Single Metric Score Slider */}
+                  {Array.isArray(activeExperiment.metricsConfig) && activeExperiment.metricsConfig.length > 0 ? (
+                    <div className="flex flex-col gap-6 pt-4 border-t border-white/5">
+                      <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest block border-b border-white/5 pb-2">
+                        Experiment Metrics
                       </span>
+                      {activeExperiment.metricsConfig.map((m: any) => {
+                        if (m.type === 'rating_1_10') {
+                          return (
+                            <div key={m.id} className="flex flex-col gap-4 border-b border-white/5 pb-6 last:border-b-0 last:pb-0">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
+                                  {m.label}
+                                </label>
+                                <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
+                                  {loggedMetrics[m.id] ?? 5}
+                                </span>
+                              </div>
+                              <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
+                                <input
+                                  type="range"
+                                  min="1"
+                                  max="10"
+                                  step="1"
+                                  value={loggedMetrics[m.id] ?? 5}
+                                  onChange={(e) => setLoggedMetrics(prev => ({ ...prev, [m.id]: parseInt(e.target.value) }))}
+                                  className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
+                                />
+                              </div>
+                              <div className="flex justify-between text-[10px] font-bold text-[#8e9299]/50 uppercase tracking-widest px-1">
+                                <span>Low</span>
+                                <span>Neutral</span>
+                                <span>High</span>
+                              </div>
+                            </div>
+                          );
+                        } else if (m.type === 'boolean') {
+                          const val = loggedMetrics[m.id] ?? false;
+                          return (
+                            <div key={m.id} className="flex flex-col gap-3 border-b border-white/5 pb-6 last:border-b-0 last:pb-0">
+                              <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
+                                {m.label}
+                              </label>
+                              <div className="grid grid-cols-2 gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setLoggedMetrics(prev => ({ ...prev, [m.id]: true }))}
+                                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all font-bold text-xs active:scale-95 ${
+                                    val === true
+                                      ? 'bg-[#10b981] border-[#10b981] text-black shadow-lg shadow-[#10b981]/20'
+                                      : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10'
+                                  }`}
+                                >
+                                  <Check size={14} />
+                                  <span>Yes</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setLoggedMetrics(prev => ({ ...prev, [m.id]: false }))}
+                                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border transition-all font-bold text-xs active:scale-95 ${
+                                    val === false
+                                      ? 'bg-[#ef4444]/20 border-[#ef4444]/40 text-[#ef4444] shadow-lg shadow-[#ef4444]/5'
+                                      : 'bg-white/5 border-white/5 text-[#8e9299] hover:bg-white/10'
+                                  }`}
+                                >
+                                  <X size={14} />
+                                  <span>No</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        } else if (m.type === 'integer') {
+                          const val = loggedMetrics[m.id] ?? 0;
+                          return (
+                            <div key={m.id} className="flex flex-col gap-3 border-b border-white/5 pb-6 last:border-b-0 last:pb-0">
+                              <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
+                                {m.label}
+                              </label>
+                              <div className="flex items-center gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => setLoggedMetrics(prev => ({ ...prev, [m.id]: Math.max(0, val - 1) }))}
+                                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white border border-white/10 active:scale-95 transition-all text-lg font-bold"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  value={val}
+                                  onChange={(e) => {
+                                    const parsed = parseInt(e.target.value);
+                                    setLoggedMetrics(prev => ({ ...prev, [m.id]: isNaN(parsed) ? 0 : Math.max(0, parsed) }));
+                                  }}
+                                  className="w-20 h-10 bg-transparent border border-white/10 rounded-xl text-center text-white font-bold outline-none focus:border-[#C75F33]/50 transition-all text-sm"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setLoggedMetrics(prev => ({ ...prev, [m.id]: val + 1 }))}
+                                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white border border-white/10 active:scale-95 transition-all text-lg font-bold"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })}
                     </div>
-                    <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        step="1"
-                        value={score}
-                        onChange={(e) => setScore(parseInt(e.target.value))}
-                        className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
-                      />
+                  ) : (
+                    /* Legacy Single Metric Slider */
+                    <div className="flex flex-col gap-6">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[#8e9299] text-xs font-bold uppercase tracking-widest">
+                          {activeExperiment.metric} Level
+                        </label>
+                        <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
+                          {score}
+                        </span>
+                      </div>
+                      <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          step="1"
+                          value={score}
+                          onChange={(e) => setScore(parseInt(e.target.value))}
+                          className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] font-bold text-[#8e9299]/50 uppercase tracking-widest px-1">
+                        <span>Low</span>
+                        <span>Neutral</span>
+                        <span>High</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between text-[10px] font-bold text-[#8e9299]/50 uppercase tracking-widest px-1">
-                      <span>Low</span>
-                      <span>Neutral</span>
-                      <span>High</span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Experiment Specific Notes */}
                   <div className="flex flex-col gap-4">

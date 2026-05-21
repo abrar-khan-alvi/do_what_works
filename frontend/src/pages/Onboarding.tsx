@@ -4,11 +4,12 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../components/AuthContext';
 import { syncToN8n } from '../services/n8nSync';
+import { AttentionBattery } from '../components/AttentionBattery';
 
 export const steps = [
   {
     id: 1,
-    title: "Control",
+    title: "Do I Take Control?",
     questions: [
       "1. My actions directly influence my outcomes",
       "2. Luck plays a larger role than effort",
@@ -18,7 +19,7 @@ export const steps = [
   },
   {
     id: 2,
-    title: "Capability",
+    title: "Can I Figure It Out?",
     questions: [
       "1. I can execute difficult tasks when necessary",
       "2. I doubt my ability to follow through",
@@ -28,7 +29,7 @@ export const steps = [
   },
   {
     id: 3,
-    title: "Adaptability",
+    title: "Do I Adjust?",
     questions: [
       "1. I change my approach when results are poor",
       "2. I stick with methods even when they fail",
@@ -38,7 +39,7 @@ export const steps = [
   },
   {
     id: 4,
-    title: "Awareness",
+    title: "Do I Catch Myself?",
     questions: [
       "1. I am aware of my daily behaviors",
       "2. I understand why I make decisions",
@@ -48,7 +49,7 @@ export const steps = [
   },
   {
     id: 5,
-    title: "Execution",
+    title: "Do I Act?",
     questions: [
       "1. I follow through consistently",
       "2. I abandon plans easily",
@@ -58,7 +59,7 @@ export const steps = [
   },
   {
     id: 6,
-    title: "Truth Orientation",
+    title: "Do I Face Reality?",
     questions: [
       "1. I want accurate feedback, even if uncomfortable",
       "2. I avoid information that contradicts me",
@@ -68,16 +69,16 @@ export const steps = [
   },
   {
     id: 7,
-    title: "Fate / Destiny",
+    title: "Do I Avoid Action?",
     questions: [
-      "1. My life is guided by a larger force or destiny",
-      "2. Things happen for a reason beyond cause and effect",
-      "3. My path is, in some way, predetermined"
+      "1. Letting go and trusting the process is more effective than forcing outcomes",
+      "2. Trying too hard can block success",
+      "3. Things come when you stop chasing them"
     ]
   },
   {
     id: 8,
-    title: "Luck / External Forces",
+    title: "Do I Blame Outside?",
     questions: [
       "1. Luck plays a major role in success",
       "2. Some people are naturally \"lucky\"",
@@ -86,7 +87,7 @@ export const steps = [
   },
   {
     id: 9,
-    title: "Manifestation / Energy",
+    title: "Do I Rely on Vibes?",
     questions: [
       "1. My thoughts influence reality in a direct way",
       "2. Visualizing outcomes helps bring them into existence",
@@ -95,16 +96,7 @@ export const steps = [
   },
   {
     id: 10,
-    title: "Control Through Non-action",
-    questions: [
-      "1. Letting go and trusting the process is more effective than forcing outcomes",
-      "2. Trying too hard can block success",
-      "3. Things come when you stop chasing them"
-    ]
-  },
-  {
-    id: 11,
-    title: "Intuition Vs Reality",
+    title: "Do I Trust Feelings Over Facts?",
     questions: [
       "1. I trust my intuition over data or evidence",
       "2. Feelings are a reliable guide to truth",
@@ -127,6 +119,7 @@ export const Onboarding = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCognitiveTest, setShowCognitiveTest] = useState(false);
 
   // Initialize answers from localStorage or default
   useEffect(() => {
@@ -175,11 +168,11 @@ export const Onboarding = () => {
         const currentUser = (refreshed as any)?.id ? refreshed : (await api.get('/api/v1/auth/profile/')).data;
         await syncToN8n(currentUser?.id, answers);
 
-        navigate('/daniel');
+        setShowCognitiveTest(true);
       } catch (err) {
         console.error('Failed to save onboarding data:', err);
-        // Fallback: still navigate so users aren't blocked
-        navigate('/daniel');
+        // Fallback: still show the test so users aren't blocked
+        setShowCognitiveTest(true);
       } finally {
         setIsSubmitting(false);
       }
@@ -192,6 +185,25 @@ export const Onboarding = () => {
       window.scrollTo(0, 0);
     }
   };
+
+  if (showCognitiveTest) {
+    return (
+      <div className="h-screen animate-gradient-bg text-white font-sans relative overflow-hidden flex flex-col items-center justify-center p-4">
+        {/* Moving background glows */}
+        <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#C75F33]/10 rounded-full blur-[120px] pointer-events-none animate-float" />
+        <div className="absolute -bottom-40 -left-40 w-[600px] h-[600px] bg-[#C75F33]/10 rounded-full blur-[120px] pointer-events-none animate-float-reverse" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C75F33]/5 rounded-full blur-[150px] pointer-events-none animate-float-alt" />
+
+        <div className="relative z-10 w-full max-w-2xl">
+          <AttentionBattery 
+            onComplete={() => navigate('/daniel')}
+            onSkip={() => navigate('/daniel')}
+            isSkippable={true}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const stepData = steps[currentStep];
 
