@@ -173,3 +173,19 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'Notification for {self.user.username}: {self.title}'
+
+
+class CognitiveBaselineLog(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='cognitive_baseline_logs')
+    attention_score = models.FloatField()
+    capacity_score = models.IntegerField()
+    control_score = models.FloatField()
+    endurance_score = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'CognitiveBaselineLog for {self.user.email} on {self.created_at.date()}'
+

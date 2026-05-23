@@ -115,7 +115,7 @@ export const options = [
 
 export const Onboarding = () => {
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -196,7 +196,10 @@ export const Onboarding = () => {
 
         <div className="relative z-10 w-full max-w-2xl">
           <AttentionBattery 
-            onComplete={() => navigate('/daniel')}
+            onComplete={async (scores) => {
+              await syncToN8n(user?.id, answers, scores);
+              navigate('/daniel');
+            }}
             onSkip={() => navigate('/daniel')}
             isSkippable={true}
           />

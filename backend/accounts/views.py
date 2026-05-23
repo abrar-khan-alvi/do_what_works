@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import CustomUser, PendingRegistration, PasswordResetToken, UserOnboarding, Subscription
+from .models import CustomUser, PendingRegistration, PasswordResetToken, UserOnboarding, Subscription, CognitiveBaselineLog
 from .serializers import (
     SignUpSerializer, VerifyOTPSerializer, LoginSerializer,
     ForgotPasswordSerializer, ResetPasswordSerializer, UserProfileSerializer,
@@ -311,6 +311,16 @@ class OnboardingView(APIView):
             defaults=defaults
         )
 
+        # Create a historical log if cognitive scores are posted
+        if 'attention_score' in serializer.validated_data and serializer.validated_data['attention_score'] is not None:
+            CognitiveBaselineLog.objects.create(
+                user=request.user,
+                attention_score=serializer.validated_data['attention_score'],
+                capacity_score=serializer.validated_data.get('capacity_score') or 3,
+                control_score=serializer.validated_data.get('control_score') or 0.0,
+                endurance_score=serializer.validated_data.get('endurance_score') or 0.0
+            )
+
         # Mark the user as having completed onboarding if answers were submitted
         if 'answers' in serializer.validated_data:
             request.user.has_completed_onboarding = True
@@ -324,6 +334,26 @@ class OnboardingView(APIView):
             'control_score': profile.control_score,
             'endurance_score': profile.endurance_score,
         }, status=status.HTTP_200_OK)
+
+
+class CognitiveBaselineHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return the user's historical cognitive baseline scores."""
+        logs = CognitiveBaselineLog.objects.filter(user=request.user).order_by('created_at')
+        data = [
+            {
+                'id': log.id,
+                'attention_score': log.attention_score,
+                'capacity_score': log.capacity_score,
+                'control_score': log.control_score,
+                'endurance_score': log.endurance_score,
+                'created_at': log.created_at.isoformat()
+            }
+            for log in logs
+        ]
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class SubscriptionView(APIView):

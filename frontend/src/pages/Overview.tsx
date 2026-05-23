@@ -2,7 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+  AreaChart, Area, Cell, Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  LineChart, Line
 } from 'recharts';
 import {
   Brain, Target, Activity, Zap, Shield, TrendingUp,
@@ -16,6 +17,7 @@ import { steps } from './Onboarding';
 import { useAccess } from '../components/AccessContext';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { AttentionBattery } from '../components/AttentionBattery';
+import { syncToN8n } from '../services/n8nSync';
 
 import { DashboardLayout } from '../components/DashboardLayout';
 
@@ -43,8 +45,21 @@ export const Overview = () => {
   const [isLoadingOnboarding, setIsLoadingOnboarding] = useState(true);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showAttentionBatteryModal, setShowAttentionBatteryModal] = useState(false);
+  const [baselineHistory, setBaselineHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
-  const handleAttentionComplete = (scores: any) => {
+  const fetchBaselineHistory = async () => {
+    try {
+      const res = await api.get('/api/v1/auth/baseline-history/');
+      setBaselineHistory(res.data);
+    } catch (err) {
+      console.error('Failed to fetch cognitive history:', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const handleAttentionComplete = async (scores: any) => {
     setOnboardingData((prev: any) => ({
       ...prev,
       attention_score: scores.attention_score,
@@ -53,6 +68,18 @@ export const Overview = () => {
       endurance_score: scores.endurance_score,
     }));
     setShowAttentionBatteryModal(false);
+
+    try {
+      const answers = onboardingData?.answers || {};
+      await syncToN8n(user?.id, answers, scores);
+      
+      // Refresh onboarding status and history
+      const res = await api.get('/api/v1/auth/onboarding/');
+      setOnboardingData(res.data);
+      await fetchBaselineHistory();
+    } catch (err) {
+      console.error('Failed to sync updated cognitive scores to n8n:', err);
+    }
   };
 
   const handlePremiumClick = (callback: () => void) => {
@@ -75,7 +102,36 @@ export const Overview = () => {
       }
     };
     fetchOnboarding();
+    fetchBaselineHistory();
   }, []);
+
+  const historyChartData = useMemo(() => {
+    return baselineHistory.map((log) => {
+      const date = new Date(log.created_at);
+      return {
+        date: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        'Overall Attention': log.attention_score,
+        'Cognitive Capacity': Math.min(100, Math.round(((log.capacity_score || 3) / 9) * 100)),
+        'Cognitive Control': log.control_score,
+        'Attention Endurance': log.endurance_score,
+      };
+    });
+  }, [baselineHistory]);
+
+  const isBaselineDue = useMemo(() => {
+    if (!onboardingData?.has_completed_onboarding) return false;
+    if (baselineHistory.length === 0) return false;
+
+    const latestLog = baselineHistory[baselineHistory.length - 1];
+    const latestDate = new Date(latestLog.created_at);
+    const today = new Date();
+
+    return (
+      latestDate.getDate() !== today.getDate() ||
+      latestDate.getMonth() !== today.getMonth() ||
+      latestDate.getFullYear() !== today.getFullYear()
+    );
+  }, [baselineHistory, onboardingData]);
 
   // 1. Process Trend Data for the Active Experiment
   const trendData = useMemo(() => {
@@ -138,7 +194,29 @@ export const Overview = () => {
         initial="initial"
         animate="animate"
         className="space-y-8 pb-12"
-      >
+      >        {isBaselineDue && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 bg-[#C75F33]/10 border border-[#C75F33]/20 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg shadow-[#C75F33]/5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#C75F33]/20 text-[#C75F33] rounded-2xl">
+                <Brain size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-white">Daily Cognitive Baseline Test Due</div>
+                <div className="text-xs text-[#8e9299]">Calibrate the AI strategist (Daniel) with your attention stats for today.</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowAttentionBatteryModal(true)}
+              className="w-full md:w-auto px-5 py-2.5 bg-[#C75F33] text-white hover:bg-[#b0522b] transition-all text-xs font-black rounded-xl"
+            >
+              Start Assessment
+            </button>
+          </motion.div>
+        )}
 
         {/* Stats Quick Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -164,53 +242,112 @@ export const Overview = () => {
         {/* Cognitive Baseline Summary Card */}
         <motion.div
           variants={fadeUp}
-          className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 md:p-8 backdrop-blur-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+          className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 md:p-8 backdrop-blur-xl flex flex-col gap-6"
         >
-          <div className="flex items-center gap-5">
-            <div className="p-4 rounded-3xl bg-[#C75F33]/15 text-[#C75F33] border border-[#C75F33]/20 flex-shrink-0">
-              <Brain size={32} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                Cognitive Baseline
-              </h2>
-              <p className="text-xs text-[#8e9299] max-w-md">
-                Your baseline attention metrics help tailor the feedback loops and analyze experiment results.
-              </p>
-            </div>
-          </div>
-
-          <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-6 flex-grow justify-end">
-            {onboardingData?.attention_score ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 flex-grow max-w-lg">
-                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Overall</div>
-                  <div className="text-sm font-black text-white">{onboardingData.attention_score}/100</div>
-                </div>
-                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Memory</div>
-                  <div className="text-sm font-black text-[#8b5cf6]">{onboardingData.capacity_score} <span className="text-[10px] font-medium text-[#8e9299]">digits</span></div>
-                </div>
-                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Control</div>
-                  <div className="text-sm font-black text-[#10b981]">{onboardingData.control_score}%</div>
-                </div>
-                <div className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
-                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider">Endurance</div>
-                  <div className="text-sm font-black text-yellow-500">{onboardingData.endurance_score}%</div>
-                </div>
+          {/* Header row */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex items-center gap-5">
+              <div className="p-4 rounded-3xl bg-[#C75F33]/15 text-[#C75F33] border border-[#C75F33]/20 flex-shrink-0">
+                <Brain size={32} />
               </div>
-            ) : (
-              <div className="text-sm font-medium text-[#8e9299] italic">No cognitive baseline recorded yet.</div>
-            )}
+              <div>
+                <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                  Cognitive Baseline
+                </h2>
+                <p className="text-xs text-[#8e9299] max-w-md">
+                  Your baseline attention metrics help tailor the feedback loops and analyze experiment results.
+                </p>
+              </div>
+            </div>
 
             <button
               onClick={() => setShowAttentionBatteryModal(true)}
-              className="px-6 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm whitespace-nowrap shadow-xl shadow-white/5"
+              className="w-full md:w-auto px-6 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm whitespace-nowrap shadow-xl shadow-white/5"
             >
               {onboardingData?.attention_score ? 'Retest Baseline' : 'Start Assessment'}
             </button>
           </div>
+
+          {/* Metrics scores row */}
+          {onboardingData?.attention_score ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-wider mb-1">Overall Attention</div>
+                <div className="text-sm font-black text-white">{onboardingData.attention_score}/100</div>
+              </div>
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-wider mb-1">Cognitive Capacity</div>
+                <div className="text-sm font-black text-[#8b5cf6]">{onboardingData.capacity_score} <span className="text-[10px] font-medium text-[#8e9299]">digits</span></div>
+              </div>
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-wider mb-1">Cognitive Control</div>
+                <div className="text-sm font-black text-[#10b981]">{onboardingData.control_score}%</div>
+              </div>
+              <div className="p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-center">
+                <div className="text-[10px] font-bold text-[#8e9299] uppercase tracking-wider mb-1">Attention Endurance</div>
+                <div className="text-sm font-black text-yellow-500">{onboardingData.endurance_score}%</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm font-medium text-[#8e9299] italic">No cognitive baseline recorded yet.</div>
+          )}
+
+          {/* Historical progression chart */}
+          {baselineHistory.length > 1 && (
+            <div className="w-full mt-4 space-y-4">
+              <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                <div className="text-xs font-bold text-white uppercase tracking-wider">Cognitive Progression Trend</div>
+                <div className="text-[10px] text-[#8e9299] font-medium">Tracking scores over time</div>
+              </div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={historyChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" />
+                    <XAxis dataKey="date" stroke="#525866" fontSize={10} tickLine={false} />
+                    <YAxis domain={[0, 100]} stroke="#525866" fontSize={10} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1c1d22',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: '16px',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontFamily: 'sans-serif'
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Overall Attention"
+                      stroke="#C75F33"
+                      strokeWidth={3}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Cognitive Capacity"
+                      stroke="#8b5cf6"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Cognitive Control"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="Attention Endurance"
+                      stroke="#eab308"
+                      strokeWidth={2}
+                      strokeDasharray="4 4"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* Charts Section */}

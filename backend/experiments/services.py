@@ -2,6 +2,39 @@ import requests
 from django.conf import settings
 import os
 
+def get_cognitive_history(user):
+    from accounts.models import CognitiveBaselineLog, UserOnboarding
+    logs = CognitiveBaselineLog.objects.filter(user=user).order_by('-created_at')[:10]
+    logs = list(reversed(logs))
+    
+    cognitive_history = [
+        {
+            "date": log.created_at.isoformat(),
+            "attention_score": log.attention_score,
+            "capacity_score": log.capacity_score,
+            "control_score": log.control_score,
+            "endurance_score": log.endurance_score
+        }
+        for log in logs
+    ]
+    
+    # Fallback to UserOnboarding if history is empty
+    if not cognitive_history:
+        try:
+            onb = UserOnboarding.objects.get(user=user)
+            if onb.attention_score is not None:
+                cognitive_history = [{
+                    "date": onb.completed_at.isoformat() if onb.completed_at else user.created_at.isoformat(),
+                    "attention_score": onb.attention_score,
+                    "capacity_score": onb.capacity_score or 3,
+                    "control_score": onb.control_score or 0.0,
+                    "endurance_score": onb.endurance_score or 0.0
+                }]
+        except Exception:
+            pass
+            
+    return cognitive_history
+
 def trigger_ai_analysis(experiment):
     """
     Sends experiment data to the n8n webhook for AI analysis.
@@ -24,11 +57,14 @@ def trigger_ai_analysis(experiment):
         "action": experiment.action,
         "metric": experiment.metric,
         "duration": experiment.duration_days,
+        "metrics_config": experiment.metrics_config,
+        "cognitive_history": get_cognitive_history(experiment.user),
         "logs": [
             {
                 "date": log.date.isoformat(),
                 "completed": log.completed,
                 "score": log.metric_value,
+                "logged_metrics": log.logged_metrics,
                 "notes": log.notes,
                 "observation": log.daily_observation,
                 "ai_suggestion": log.ai_suggestion
@@ -103,11 +139,14 @@ def trigger_daily_action(experiment, log):
         "metric": experiment.metric,
         "duration": experiment.duration_days,
         "day_number": experiment.logs.count(),
+        "metrics_config": experiment.metrics_config,
+        "cognitive_history": get_cognitive_history(experiment.user),
         "logs": [
             {
                 "date": l.date.isoformat(),
                 "completed": l.completed,
                 "score": l.metric_value,
+                "logged_metrics": l.logged_metrics,
                 "notes": l.notes,
                 "observation": l.daily_observation,
                 "previous_suggestion": l.ai_suggestion

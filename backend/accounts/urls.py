@@ -16,6 +16,7 @@ urlpatterns = [
     path('reset-password/', views.ResetPasswordView.as_view(), name='auth-reset-password'),
     path('profile/', views.ProfileView.as_view(), name='auth-profile'),
     path('onboarding/', views.OnboardingView.as_view(), name='auth-onboarding'),
+    path('baseline-history/', views.CognitiveBaselineHistoryView.as_view(), name='auth-baseline-history'),
     path('subscription/', views.SubscriptionView.as_view(), name='auth-subscription'),
     path('subscription/activate/', views.ActivateSubscriptionView.as_view(), name='auth-subscription-activate'),
     # Stripe integration
