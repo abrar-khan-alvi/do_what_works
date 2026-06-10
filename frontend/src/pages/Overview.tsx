@@ -18,6 +18,7 @@ import { useAccess } from '../components/AccessContext';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { AttentionBattery } from '../components/AttentionBattery';
 import { syncToN8n } from '../services/n8nSync';
+import { DailyCheckinModal } from '../components/DailyCheckinModal';
 
 import { DashboardLayout } from '../components/DashboardLayout';
 
@@ -47,6 +48,12 @@ export const Overview = () => {
   const [showAttentionBatteryModal, setShowAttentionBatteryModal] = useState(false);
   const [baselineHistory, setBaselineHistory] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showDailyCheckinModal, setShowDailyCheckinModal] = useState(false);
+  const [dailyCheckinStatus, setDailyCheckinStatus] = useState<{ has_checked_in_today: boolean; checkin: any | null }>({
+    has_checked_in_today: false,
+    checkin: null
+  });
+  const [isLoadingCheckin, setIsLoadingCheckin] = useState(true);
 
   const fetchBaselineHistory = async () => {
     try {
@@ -56,6 +63,17 @@ export const Overview = () => {
       console.error('Failed to fetch cognitive history:', err);
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  const fetchDailyCheckinStatus = async () => {
+    try {
+      const res = await api.get('/api/v1/experiments/daily-checkin/');
+      setDailyCheckinStatus(res.data);
+    } catch (err) {
+      console.error('Failed to fetch daily check-in status:', err);
+    } finally {
+      setIsLoadingCheckin(false);
     }
   };
 
@@ -103,6 +121,7 @@ export const Overview = () => {
     };
     fetchOnboarding();
     fetchBaselineHistory();
+    fetchDailyCheckinStatus();
   }, []);
 
   const historyChartData = useMemo(() => {
@@ -214,6 +233,30 @@ export const Overview = () => {
               className="w-full md:w-auto px-5 py-2.5 bg-[#C75F33] text-white hover:bg-[#b0522b] transition-all text-xs font-black rounded-xl"
             >
               Start Assessment
+            </button>
+          </motion.div>
+        )}
+
+        {!dailyCheckinStatus.has_checked_in_today && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-5 bg-[#8b5cf6]/10 border border-[#8b5cf6]/20 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-lg shadow-[#8b5cf6]/5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-[#8b5cf6]/20 text-[#8b5cf6] rounded-2xl">
+                <Activity size={20} className="animate-pulse" />
+              </div>
+              <div>
+                <div className="text-sm font-black text-white">Daily Metrics Check-in Due</div>
+                <div className="text-xs text-[#8e9299]">Log your focus, energy, and sleep metrics to calibrate Daniel.</div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowDailyCheckinModal(true)}
+              className="w-full md:w-auto px-5 py-2.5 bg-[#8b5cf6] text-white hover:bg-[#7c3aed] transition-all text-xs font-black rounded-xl"
+            >
+              Log Daily Metrics
             </button>
           </motion.div>
         )}
@@ -349,6 +392,65 @@ export const Overview = () => {
             </div>
           )}
         </motion.div>
+
+        {/* Daily Lifestyle Metrics Summary Card */}
+        {dailyCheckinStatus.has_checked_in_today && dailyCheckinStatus.checkin && (
+          <motion.div
+            variants={fadeUp}
+            className="bg-[#1a1b1e]/40 border border-white/[0.06] rounded-[2rem] p-6 md:p-8 backdrop-blur-xl flex flex-col gap-6"
+          >
+            {/* Header row */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex items-center gap-5">
+                <div className="p-4 rounded-3xl bg-[#8b5cf6]/15 text-[#8b5cf6] border border-[#8b5cf6]/20 flex-shrink-0">
+                  <Activity size={32} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    Daily Lifestyle Metrics
+                  </h2>
+                  <p className="text-xs text-[#8e9299] max-w-md">
+                    Logged values for focus, sleep, and lifestyle metrics today to optimize AI suggestions.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowDailyCheckinModal(true)}
+                className="w-full md:w-auto px-6 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-[#8b5cf6] hover:text-white transition-all text-sm whitespace-nowrap shadow-xl shadow-white/5"
+              >
+                Log Again
+              </button>
+            </div>
+
+            {/* Metrics scores row */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4 w-full">
+              {[
+                { label: 'Sleep', val: dailyCheckinStatus.checkin.sleep, icon: '🌙', color: 'text-indigo-400' },
+                { label: 'Exercise', val: dailyCheckinStatus.checkin.exercise, icon: '🏃', color: 'text-green-400' },
+                { label: 'Focus', val: dailyCheckinStatus.checkin.focus, icon: '🎯', color: 'text-orange-400' },
+                { label: 'Energy', val: dailyCheckinStatus.checkin.energy, icon: '⚡', color: 'text-yellow-400' },
+                { label: 'Mood', val: dailyCheckinStatus.checkin.mood, icon: '🎭', color: 'text-pink-400' },
+                { label: 'Stress', val: dailyCheckinStatus.checkin.stress, icon: '🌊', color: 'text-purple-400' },
+                { label: 'Social', val: dailyCheckinStatus.checkin.social, icon: '🤝', color: 'text-teal-400' },
+                { label: 'Progress', val: dailyCheckinStatus.checkin.progress, icon: '📈', color: 'text-blue-400' },
+              ].map((item) => (
+                <div key={item.label} className="p-3 bg-white/[0.02] border border-white/5 rounded-2xl text-center flex flex-col items-center justify-center">
+                  <div className="text-lg mb-1">{item.icon}</div>
+                  <div className="text-[9px] font-bold text-[#8e9299] uppercase tracking-wider mb-1">{item.label}</div>
+                  <div className={`text-sm font-black ${item.color}`}>{item.val}/10</div>
+                </div>
+              ))}
+            </div>
+
+            {dailyCheckinStatus.checkin.notes && (
+              <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
+                <span className="text-[10px] font-bold text-[#8e9299] uppercase tracking-widest block mb-1">Today's Notes</span>
+                <p className="text-xs text-white leading-relaxed italic">"{dailyCheckinStatus.checkin.notes}"</p>
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -619,6 +721,12 @@ export const Overview = () => {
       <SubscriptionModal 
         isOpen={showLockModal} 
         onClose={() => setShowLockModal(false)} 
+      />
+
+      <DailyCheckinModal
+        isOpen={showDailyCheckinModal}
+        onClose={() => setShowDailyCheckinModal(false)}
+        onSuccess={fetchDailyCheckinStatus}
       />
 
       <AnimatePresence>

@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import ChatSession, Experiment, DailyLog
+from .models import ChatSession, Experiment, DailyLog, DailyCheckin
 from .serializers import (
     ChatSessionListSerializer,
     ChatSessionDetailSerializer,
@@ -13,6 +13,7 @@ from .serializers import (
     ExperimentDetailSerializer,
     ExperimentCreateSerializer,
     ExperimentStatusSerializer,
+    DailyCheckinSerializer,
 )
 from .services import trigger_ai_analysis, trigger_daily_action
 from .templates_config import EXPERIMENT_TEMPLATES
@@ -345,3 +346,67 @@ class ExperimentTemplatesView(APIView):
 
     def get(self, request):
         return Response(EXPERIMENT_TEMPLATES)
+
+
+class DailyCheckinView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Check if today is logged, or fetch check-in history.
+        Query params:
+        - ?history=true: Returns up to last 30 check-ins.
+        """
+        today = timezone.now().date()
+        
+        # If requesting history
+        if request.query_params.get('history') == 'true':
+            checkins = DailyCheckin.objects.filter(user=request.user).order_by('-date')[:30]
+            serializer = DailyCheckinSerializer(checkins, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        # Default: check if checked in today
+        try:
+            checkin = DailyCheckin.objects.get(user=request.user, date=today)
+            serializer = DailyCheckinSerializer(checkin)
+            return Response({
+                'has_checked_in_today': True,
+                'checkin': serializer.data
+            }, status=status.HTTP_200_OK)
+        except DailyCheckin.DoesNotExist:
+            return Response({
+                'has_checked_in_today': False,
+                'checkin': None
+            }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        """Upsert (create or update) today's daily metrics check-in."""
+        today = timezone.now().date()
+        day_name = today.strftime('%A')  # e.g., "Monday"
+        
+        serializer = DailyCheckinSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        checkin, created = DailyCheckin.objects.update_or_create(
+            user=request.user,
+            date=today,
+            defaults={
+                'day_of_week': day_name,
+                'focus': serializer.validated_data['focus'],
+                'energy': serializer.validated_data['energy'],
+                'mood': serializer.validated_data['mood'],
+                'stress': serializer.validated_data['stress'],
+                'social': serializer.validated_data['social'],
+                'progress': serializer.validated_data['progress'],
+                'sleep': serializer.validated_data['sleep'],
+                'exercise': serializer.validated_data['exercise'],
+                'notes': serializer.validated_data.get('notes', ''),
+            }
+        )
+        
+        return Response(
+            DailyCheckinSerializer(checkin).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+

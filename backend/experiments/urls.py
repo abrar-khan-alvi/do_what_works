@@ -14,4 +14,5 @@ urlpatterns = [
     path('experiments/<int:pk>/logs/', views.DailyLogView.as_view(), name='experiment-logs'),
     path('experiments/<int:pk>/analyze/', views.ExperimentAnalyzeView.as_view(), name='experiment-analyze'),
     path('experiments/<int:pk>/generate-daily-action/', views.ExperimentDailyActionView.as_view(), name='experiment-daily-action'),
+    path('experiments/daily-checkin/', views.DailyCheckinView.as_view(), name='daily-checkin'),
 ]

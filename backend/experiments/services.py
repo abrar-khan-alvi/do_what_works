@@ -35,6 +35,28 @@ def get_cognitive_history(user):
             
     return cognitive_history
 
+def get_daily_checkins_history(user):
+    from .models import DailyCheckin
+    checkins = DailyCheckin.objects.filter(user=user).order_by('-date')[:10]
+    checkins = list(reversed(checkins))
+    return [
+        {
+            "date": c.date.isoformat(),
+            "day_of_week": c.day_of_week,
+            "focus": c.focus,
+            "energy": c.energy,
+            "mood": c.mood,
+            "stress": c.stress,
+            "social": c.social,
+            "progress": c.progress,
+            "sleep": c.sleep,
+            "exercise": c.exercise,
+            "notes": c.notes
+        }
+        for c in checkins
+    ]
+
+
 def trigger_ai_analysis(experiment):
     """
     Sends experiment data to the n8n webhook for AI analysis.
@@ -55,10 +77,12 @@ def trigger_ai_analysis(experiment):
         "experiment_id": str(experiment.id),
         "hypothesis": experiment.hypothesis,
         "action": experiment.action,
+        "original_action": experiment.action,
         "metric": experiment.metric,
         "duration": experiment.duration_days,
         "metrics_config": experiment.metrics_config,
         "cognitive_history": get_cognitive_history(experiment.user),
+        "daily_checkins": get_daily_checkins_history(experiment.user),
         "logs": [
             {
                 "date": log.date.isoformat(),
@@ -141,6 +165,7 @@ def trigger_daily_action(experiment, log):
         "day_number": experiment.logs.count(),
         "metrics_config": experiment.metrics_config,
         "cognitive_history": get_cognitive_history(experiment.user),
+        "daily_checkins": get_daily_checkins_history(experiment.user),
         "logs": [
             {
                 "date": l.date.isoformat(),

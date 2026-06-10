@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ChatSession, Experiment, DailyLog
+from .models import ChatSession, Experiment, DailyLog, DailyCheckin
 
 
 class ChatSessionListSerializer(serializers.ModelSerializer):
@@ -57,3 +57,25 @@ class ExperimentStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = Experiment
         fields = ['status']
+
+
+class DailyCheckinSerializer(serializers.ModelSerializer):
+    focus = serializers.IntegerField(min_value=1, max_value=10)
+    energy = serializers.IntegerField(min_value=1, max_value=10)
+    mood = serializers.IntegerField(min_value=1, max_value=10)
+    stress = serializers.IntegerField(min_value=1, max_value=10)
+    social = serializers.IntegerField(min_value=1, max_value=10)
+    progress = serializers.IntegerField(min_value=1, max_value=10)
+    sleep = serializers.IntegerField(min_value=1, max_value=10)
+    exercise = serializers.IntegerField(min_value=1, max_value=10)
+
+    class Meta:
+        model = DailyCheckin
+        fields = [
+            'id', 'date', 'day_of_week',
+            'focus', 'energy', 'mood', 'stress',
+            'social', 'progress', 'sleep', 'exercise',
+            'notes', 'created_at'
+        ]
+        read_only_fields = ['id', 'date', 'day_of_week', 'created_at']
+
