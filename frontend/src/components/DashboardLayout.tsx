@@ -180,12 +180,12 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
                 <div
                   key={s.id}
                   onClick={() => handleSessionClick(s.id)}
-                  className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all flex-shrink-0 ${currentSessionId === s.id && location.pathname === '/daniel'
+                  className={`group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition-all flex-shrink-0 ${currentSessionId === s.id && location.pathname.startsWith('/daniel')
                     ? 'bg-white/10 text-white border border-white/5 shadow-md shadow-black/20'
                     : 'text-[#8e9299] hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <MessageSquare size={14} className={currentSessionId === s.id && location.pathname === '/daniel' ? 'text-white' : 'text-[#8e9299] flex-shrink-0'} />
+                  <MessageSquare size={14} className={currentSessionId === s.id && location.pathname.startsWith('/daniel') ? 'text-white' : 'text-[#8e9299] flex-shrink-0'} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate leading-tight flex items-center gap-2">
                       {s.title || 'New Chat'}

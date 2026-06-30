@@ -112,7 +112,12 @@ export const DailyLog = () => {
           
           {/* Header */}
           <div className="mb-8 px-1 md:px-0">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Daily Log</h1>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold">Daily Log</h1>
+              <div className="text-[10px] md:text-xs font-bold text-[#8e9299] uppercase tracking-widest bg-white/5 px-3 py-1.5 rounded-full w-fit">
+                {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+            </div>
             <p className="text-[#8e9299] text-sm md:text-base leading-relaxed">
               Consistency is evidence. Log your protocol execution and metrics.
             </p>
@@ -319,7 +324,7 @@ export const DailyLog = () => {
                                   {m.label}
                                 </label>
                                 <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
-                                  {loggedMetrics[m.id] ?? 5}
+                                  {Number(loggedMetrics[m.id] ?? 5).toFixed(1)}
                                 </span>
                               </div>
                               <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
@@ -327,9 +332,9 @@ export const DailyLog = () => {
                                   type="range"
                                   min="1"
                                   max="10"
-                                  step="1"
+                                  step="0.1"
                                   value={loggedMetrics[m.id] ?? 5}
-                                  onChange={(e) => setLoggedMetrics(prev => ({ ...prev, [m.id]: parseInt(e.target.value) }))}
+                                  onChange={(e) => setLoggedMetrics(prev => ({ ...prev, [m.id]: parseFloat(e.target.value) }))}
                                   className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
                                 />
                               </div>
@@ -421,7 +426,7 @@ export const DailyLog = () => {
                           {activeExperiment.metric} Level
                         </label>
                         <span className="w-8 h-8 rounded-lg bg-[#C75F33] text-white flex items-center justify-center font-bold text-sm">
-                          {score}
+                          {Number(score).toFixed(1)}
                         </span>
                       </div>
                       <div className="relative h-2 w-full bg-white/5 rounded-full px-1 flex items-center">
@@ -429,9 +434,9 @@ export const DailyLog = () => {
                           type="range"
                           min="1"
                           max="10"
-                          step="1"
+                          step="0.1"
                           value={score}
-                          onChange={(e) => setScore(parseInt(e.target.value))}
+                          onChange={(e) => setScore(parseFloat(e.target.value))}
                           className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
                         />
                       </div>

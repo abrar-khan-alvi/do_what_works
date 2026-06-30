@@ -55,7 +55,7 @@ class DailyLog(models.Model):
     )
     date = models.DateField()
     completed = models.CharField(max_length=10, choices=COMPLETED_CHOICES, default='pending')
-    metric_value = models.PositiveSmallIntegerField(default=5)
+    metric_value = models.FloatField(default=5.0)
     logged_metrics = models.JSONField(default=dict)  # Stores actual logs per the metrics_config
     notes = models.TextField(blank=True)
     daily_observation = models.TextField(blank=True)
@@ -75,14 +75,14 @@ class DailyCheckin(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='daily_checkins')
     date = models.DateField()
     day_of_week = models.CharField(max_length=15)
-    focus = models.PositiveSmallIntegerField()       # 1-10
-    energy = models.PositiveSmallIntegerField()      # 1-10
-    mood = models.PositiveSmallIntegerField()        # 1-10
-    stress = models.PositiveSmallIntegerField()      # 1-10
-    social = models.PositiveSmallIntegerField()      # 1-10
-    progress = models.PositiveSmallIntegerField()    # 1-10
-    sleep = models.PositiveSmallIntegerField()       # 1-10
-    exercise = models.PositiveSmallIntegerField()    # 1-10
+    focus = models.FloatField()    
+    energy = models.FloatField()     
+    mood = models.FloatField()       
+    stress = models.FloatField()      
+    social = models.FloatField()      
+    progress = models.FloatField()    
+    sleep = models.FloatField()       
+    exercise = models.FloatField()    
     notes = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 

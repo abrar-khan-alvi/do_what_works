@@ -11,13 +11,18 @@ import {
   Lightbulb,
   Zap,
   Target,
-  Brain
+  Brain,
+  ChevronDown,
+  Plus,
+  MessageSquare
 } from 'lucide-react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAccess } from '../components/AccessContext';
 import { useChat } from '../components/ChatContext';
 import { useAuth } from '../components/AuthContext';
 import { FeatureLock } from '../components/FeatureLock';
+import { useExperiments } from '../components/ExperimentContext';
+import { api } from '../services/api';
 
 const SUGGESTIONS = [
   { icon: <Brain size={16} />, text: "I believe I work better at night." },
@@ -33,9 +38,14 @@ export const Daniel = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { sessions, currentSession, currentSessionId, setCurrentSessionId, createNewSession, addMessage, updateSessionTitle, isLoading } = useChat();
+  const { experiments } = useExperiments();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [cognitiveHistory, setCognitiveHistory] = useState<any[]>([]);
+  const [dailyCheckins, setDailyCheckins] = useState<any[]>([]);
+
 
   // Sync state with URL parameter
   useEffect(() => {
@@ -43,6 +53,30 @@ export const Daniel = () => {
       setCurrentSessionId(id);
     }
   }, [id, currentSessionId, setCurrentSessionId]);
+
+  // Fetch cognitive history & daily check-ins on mount
+  useEffect(() => {
+    if (!isSubscribed) return;
+
+    const fetchHistory = async () => {
+      try {
+        const cogRes = await api.get('/api/v1/auth/baseline-history/');
+        setCognitiveHistory(cogRes.data);
+      } catch (err) {
+        console.error('Failed to fetch cognitive history:', err);
+      }
+
+      try {
+        const checkRes = await api.get('/api/v1/experiments/daily-checkin/?history=true');
+        setDailyCheckins(checkRes.data);
+      } catch (err) {
+        console.error('Failed to fetch check-in history:', err);
+      }
+    };
+
+    fetchHistory();
+  }, [isSubscribed]);
+
 
   // Handle auto-redirection for path without ID or invalid ID
   useEffect(() => {
@@ -112,7 +146,28 @@ export const Daniel = () => {
           sessionId: currentSessionId, 
           action: 'sendMessage',
           userid: String(user?.id || ''),
-          userId: String(user?.id || '') // Redundancy for workflow compatibility
+          userId: String(user?.id || ''), // Redundancy for workflow compatibility
+          cognitive_history: cognitiveHistory,
+          daily_checkins: dailyCheckins,
+          experiments: experiments.map(exp => ({
+            id: exp.id,
+            hypothesis: exp.hypothesis,
+            action: exp.action,
+            metric: exp.metric,
+            durationDays: exp.durationDays,
+            startDate: exp.startDate,
+            status: exp.status,
+            logs: exp.logs.map(log => ({
+              date: log.date,
+              completed: log.completed,
+              metricValue: log.metricValue,
+              loggedMetrics: log.loggedMetrics,
+              notes: log.notes,
+              dailyObservation: log.dailyObservation,
+              aiSuggestion: log.aiSuggestion
+            })),
+            aiAnalysis: exp.aiAnalysis
+          }))
         }),
       });
 
@@ -189,6 +244,7 @@ export const Daniel = () => {
   return (
     <DashboardLayout noPadding>
       <div className={`flex flex-col flex-1 min-h-0 relative ${!isSubscribed ? 'h-full overflow-hidden' : 'h-full'}`}>
+
         {/* Main Content Centered Container */}
         <div ref={chatContainerRef} className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="max-w-3xl mx-auto w-full px-4 md:px-6 py-8 md:py-20 flex flex-col min-h-full">

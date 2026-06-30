@@ -85,10 +85,14 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
+                <div className="flex flex-col gap-1">
                   <h2 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
                     Daily Metrics Check-in
                   </h2>
-                  <p className="text-[10px] text-[#8e9299] font-bold uppercase tracking-widest">Calibrate Daniel AI</p>
+                  <p className="text-[10px] text-[#8e9299] font-bold uppercase tracking-widest">
+                    {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} • Calibrate Daniel AI
+                  </p>
+                </div>
                 </div>
               </div>
 
@@ -116,7 +120,7 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                       </div>
                     </div>
                     <span className="w-8 h-8 rounded-lg bg-[#C75F33]/10 border border-[#C75F33]/20 text-[#C75F33] flex items-center justify-center font-bold text-xs">
-                      {metrics[m.id]}
+                      {Number(metrics[m.id]).toFixed(1)}
                     </span>
                   </div>
 
@@ -125,10 +129,10 @@ export const DailyCheckinModal: React.FC<DailyCheckinModalProps> = ({
                       type="range"
                       min="1"
                       max="10"
-                      step="1"
+                      step="0.1"
                       value={metrics[m.id]}
                       onChange={(e) =>
-                        setMetrics((prev) => ({ ...prev, [m.id]: parseInt(e.target.value) }))
+                        setMetrics((prev) => ({ ...prev, [m.id]: parseFloat(e.target.value) }))
                       }
                       className="w-full h-1 bg-transparent appearance-none cursor-pointer accent-[#C75F33]"
                     />
