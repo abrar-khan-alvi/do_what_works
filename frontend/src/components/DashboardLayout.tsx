@@ -137,7 +137,7 @@ export const DashboardLayout = ({ children, sidebarExtra, sidebarTopExtra, sideb
             }`}
           >
             {isSubscribed ? <Plus size={18} /> : <Lock size={16} className="text-[#C75F33]" />}
-            <span>{isSubscribed ? 'New Strategist' : 'Upgrade Strategist'}</span>
+            <span>{isSubscribed ? 'New Chat' : 'Upgrade Strategist'}</span>
           </button>
         </div>
 

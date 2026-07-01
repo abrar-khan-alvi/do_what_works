@@ -267,7 +267,7 @@ export const Overview = () => {
   }, [experiments, navigate, isSubscribed]);
 
   const stats = [
-    { label: 'Active Sprint', value: activeExperiment ? `Day ${activeExperiment.logs.length + 1}` : 'None', icon: Target, color: 'text-[#C75F33]' },
+    { label: 'Metrics', value: activeExperiment ? `Day ${activeExperiment.logs.length + 1}` : 'None', icon: Target, color: 'text-[#C75F33]' },
     { label: 'Avg Focus', value: trendData.length ? (trendData.reduce((acc, curr) => acc + curr.value, 0) / trendData.length).toFixed(1) : '—', icon: Activity, color: 'text-[#8b5cf6]' },
     { label: 'Total Logs', value: experiments.reduce((acc, exp) => acc + exp.logs.length, 0), icon: Zap, color: 'text-yellow-500' },
   ];
@@ -285,11 +285,12 @@ export const Overview = () => {
           <button
             type="button"
             onClick={() => setActiveTab('sprint')}
-            className={`px-6 py-3 text-xs font-black uppercase tracking-widest transition-all relative ${
+            className={`px-6 py-3 text-xs font-black uppercase tracking-widest transition-all relative flex items-center gap-2 ${
               activeTab === 'sprint' ? 'text-white' : 'text-[#8e9299] hover:text-white'
             }`}
           >
-            Active Sprint
+            <Activity size={16} className={activeTab === 'sprint' ? 'text-[#C75F33]' : ''} />
+            Metrics
             {activeTab === 'sprint' && (
               <motion.div
                 layoutId="activeTabUnderline"
@@ -300,11 +301,12 @@ export const Overview = () => {
           <button
             type="button"
             onClick={() => setActiveTab('analytics')}
-            className={`px-6 py-3 text-xs font-black uppercase tracking-widest transition-all relative ${
+            className={`px-6 py-3 text-xs font-black uppercase tracking-widest transition-all relative flex items-center gap-2 ${
               activeTab === 'analytics' ? 'text-white' : 'text-[#8e9299] hover:text-white'
             }`}
           >
-            Cognitive & Belief Analytics
+            <Brain size={16} className={activeTab === 'analytics' ? 'text-[#C75F33]' : ''} />
+            Beliefs & Attention
             {activeTab === 'analytics' && (
               <motion.div
                 layoutId="activeTabUnderline"
@@ -327,7 +329,7 @@ export const Overview = () => {
                     <Activity size={20} className="animate-pulse" />
                   </div>
                   <div>
-                    <div className="text-sm font-black text-white">Daily Metrics Check-in Due</div>
+                    <div className="text-sm font-black text-white">Daily Log Due</div>
                     <div className="text-xs text-[#8e9299]">Log your focus, energy, and sleep metrics to calibrate Daniel.</div>
                   </div>
                 </div>
@@ -335,7 +337,7 @@ export const Overview = () => {
                   onClick={() => setShowDailyCheckinModal(true)}
                   className="w-full md:w-auto px-5 py-2.5 bg-[#8b5cf6] text-white hover:bg-[#7c3aed] transition-all text-xs font-black rounded-xl"
                 >
-                  Log Daily Metrics
+                  Daily Log
                 </button>
               </motion.div>
             )}
@@ -373,7 +375,7 @@ export const Overview = () => {
                     </div>
                     <div>
                       <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-                        Daily Lifestyle Metrics
+                        Daily Log
                       </h2>
                       <p className="text-xs text-[#8e9299] max-w-md">
                         Logged values for focus, sleep, and lifestyle metrics today to optimize AI suggestions.
@@ -385,7 +387,7 @@ export const Overview = () => {
                     onClick={() => setShowDailyCheckinModal(true)}
                     className="w-full md:w-auto px-6 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-[#8b5cf6] hover:text-white transition-all text-sm whitespace-nowrap shadow-xl shadow-white/5"
                   >
-                    Log Again
+                    Daily Log
                   </button>
                 </div>
 
