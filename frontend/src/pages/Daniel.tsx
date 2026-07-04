@@ -45,6 +45,7 @@ export const Daniel = () => {
 
   const [cognitiveHistory, setCognitiveHistory] = useState<any[]>([]);
   const [dailyCheckins, setDailyCheckins] = useState<any[]>([]);
+  const [onboardingProfile, setOnboardingProfile] = useState<any>(null);
 
 
   // Sync state with URL parameter
@@ -71,6 +72,13 @@ export const Daniel = () => {
         setDailyCheckins(checkRes.data);
       } catch (err) {
         console.error('Failed to fetch check-in history:', err);
+      }
+
+      try {
+        const onboardRes = await api.get('/api/v1/auth/onboarding/');
+        setOnboardingProfile(onboardRes.data);
+      } catch (err) {
+        console.error('Failed to fetch onboarding profile:', err);
       }
     };
 
@@ -147,6 +155,7 @@ export const Daniel = () => {
           action: 'sendMessage',
           userid: String(user?.id || ''),
           userId: String(user?.id || ''), // Redundancy for workflow compatibility
+          onboarding_profile: onboardingProfile,
           cognitive_history: cognitiveHistory,
           daily_checkins: dailyCheckins,
           experiments: experiments.map(exp => ({
