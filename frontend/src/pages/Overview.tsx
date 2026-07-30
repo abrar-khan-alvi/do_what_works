@@ -10,14 +10,12 @@ import {
   ChevronRight, FlaskConical, Clock, Award
 } from 'lucide-react';
 import { useExperiments } from '../components/ExperimentContext';
-import { useAuth } from '../components/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { steps } from './Onboarding';
 import { useAccess } from '../components/AccessContext';
 import { SubscriptionModal } from '../components/SubscriptionModal';
 import { AttentionBattery } from '../components/AttentionBattery';
-import { syncToN8n } from '../services/n8nSync';
 import { DailyCheckinModal } from '../components/DailyCheckinModal';
 
 import { DashboardLayout } from '../components/DashboardLayout';
@@ -39,7 +37,6 @@ const container = {
 export const Overview = () => {
   const { isSubscribed } = useAccess();
   const { experiments, activeExperiment } = useExperiments();
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [onboardingData, setOnboardingData] = useState<any>(null);
@@ -89,10 +86,8 @@ export const Overview = () => {
     setShowAttentionBatteryModal(false);
 
     try {
-      const answers = onboardingData?.answers || {};
-      await syncToN8n(user?.id, answers, scores);
-      
-      // Refresh onboarding status and history
+      // AttentionBattery already POSTed the scores to /auth/onboarding/, which
+      // syncs to n8n server-side -- just refresh onboarding status and history.
       const res = await api.get('/api/v1/auth/onboarding/');
       setOnboardingData(res.data);
       await fetchBaselineHistory();

@@ -19,9 +19,7 @@ import {
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAccess } from '../components/AccessContext';
 import { useChat } from '../components/ChatContext';
-import { useAuth } from '../components/AuthContext';
 import { FeatureLock } from '../components/FeatureLock';
-import { useExperiments } from '../components/ExperimentContext';
 import { api } from '../services/api';
 
 const SUGGESTIONS = [
@@ -36,17 +34,10 @@ export const Daniel = () => {
   const { isSubscribed } = useAccess();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
   const { sessions, currentSession, currentSessionId, setCurrentSessionId, createNewSession, addMessage, updateSessionTitle, isLoading } = useChat();
-  const { experiments } = useExperiments();
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const [cognitiveHistory, setCognitiveHistory] = useState<any[]>([]);
-  const [dailyCheckins, setDailyCheckins] = useState<any[]>([]);
-  const [onboardingProfile, setOnboardingProfile] = useState<any>(null);
-
 
   // Sync state with URL parameter
   useEffect(() => {
@@ -54,37 +45,6 @@ export const Daniel = () => {
       setCurrentSessionId(id);
     }
   }, [id, currentSessionId, setCurrentSessionId]);
-
-  // Fetch cognitive history & daily check-ins on mount
-  useEffect(() => {
-    if (!isSubscribed) return;
-
-    const fetchHistory = async () => {
-      try {
-        const cogRes = await api.get('/api/v1/auth/baseline-history/');
-        setCognitiveHistory(cogRes.data);
-      } catch (err) {
-        console.error('Failed to fetch cognitive history:', err);
-      }
-
-      try {
-        const checkRes = await api.get('/api/v1/experiments/daily-checkin/?history=true');
-        setDailyCheckins(checkRes.data);
-      } catch (err) {
-        console.error('Failed to fetch check-in history:', err);
-      }
-
-      try {
-        const onboardRes = await api.get('/api/v1/auth/onboarding/');
-        setOnboardingProfile(onboardRes.data);
-      } catch (err) {
-        console.error('Failed to fetch onboarding profile:', err);
-      }
-    };
-
-    fetchHistory();
-  }, [isSubscribed]);
-
 
   // Handle auto-redirection for path without ID or invalid ID
   useEffect(() => {
@@ -104,7 +64,6 @@ export const Daniel = () => {
 
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const webhookUrl = import.meta.env.VITE_DANIEL_WEBHOOK_URL;
 
   const messages = currentSession?.messages || [];
 
@@ -146,89 +105,21 @@ export const Daniel = () => {
     setIsTyping(true);
 
     try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          chatInput: userText, 
-          sessionId: currentSessionId, 
-          action: 'sendMessage',
-          userid: String(user?.id || ''),
-          userId: String(user?.id || ''), // Redundancy for workflow compatibility
-          onboarding_profile: onboardingProfile,
-          cognitive_history: cognitiveHistory,
-          daily_checkins: dailyCheckins,
-          experiments: experiments.map(exp => ({
-            id: exp.id,
-            hypothesis: exp.hypothesis,
-            action: exp.action,
-            metric: exp.metric,
-            durationDays: exp.durationDays,
-            startDate: exp.startDate,
-            status: exp.status,
-            logs: exp.logs.map(log => ({
-              date: log.date,
-              completed: log.completed,
-              metricValue: log.metricValue,
-              loggedMetrics: log.loggedMetrics,
-              notes: log.notes,
-              dailyObservation: log.dailyObservation,
-              aiSuggestion: log.aiSuggestion
-            })),
-            aiAnalysis: exp.aiAnalysis
-          }))
-        }),
+      const response = await api.post(`/api/v1/chat/sessions/${currentSessionId}/ask/`, {
+        text: userText,
       });
 
-      if (!response.ok) throw new Error('Network error');
-
-      const data = await response.json();
-      const responseText = Array.isArray(data) ? data[0]?.output || data[0]?.text : data.output || data.text;
-      
+      const { text: responseText, is_proposal, proposal_data } = response.data;
       setIsTyping(false);
 
       if (responseText) {
-        const parseExperimentData = (text: string) => {
-          const findVal = (label: string) => {
-            // Updated regex to be more lenient: matches label anywhere in line, handles various punctuation
-            const regex = new RegExp(`(?:^|\\n).*?(?:${label}|${label.toLowerCase()}):?\\s*(?:\\*\\*)?\\s*(.*)`, 'i');
-            const match = text.match(regex);
-            if (match && match[1]) {
-              let val = match[1].trim()
-                .split('\n')[0] // Only take the first line of the value
-                .replace(/\*\*$/, '')
-                .replace(/^[:\s-]+/, '') // Clean up leading punctuation/whitespace
-                .replace(/\*\*$/, '');
-
-              // For Duration, we only want the primary number
-              if (label === 'Duration') {
-                const numericMatch = val.match(/\d+/);
-                if (numericMatch) return numericMatch[0];
-              }
-              return val;
-            }
-            return null;
-          };
-
-          const hypothesis = findVal('Hypothesis');
-          const action = findVal('Action');
-          const metric = findVal('Metric');
-          const duration = findVal('Duration');
-
-          if (hypothesis && action && metric && duration) {
-            return { hypothesis, action, metric, duration };
-          }
-          return null;
-        };
-
-        const proposalData = parseExperimentData(responseText);
         const newDanielMsg = {
           id: (Date.now() + 1).toString(),
           sender: 'daniel' as const,
           text: responseText,
           timestamp: Date.now(),
-          isProposal: !!proposalData,
-          proposalData: proposalData || undefined
+          isProposal: !!is_proposal,
+          proposalData: proposal_data || undefined
         };
 
         await addMessage(currentSessionId, newDanielMsg);

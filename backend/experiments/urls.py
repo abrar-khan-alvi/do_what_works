@@ -6,6 +6,7 @@ urlpatterns = [
     path('chat/sessions/', views.ChatSessionListCreateView.as_view(), name='chat-sessions'),
     path('chat/sessions/<int:pk>/', views.ChatSessionDetailView.as_view(), name='chat-session-detail'),
     path('chat/sessions/<int:pk>/messages/', views.ChatMessageListCreateView.as_view(), name='chat-messages'),
+    path('chat/sessions/<int:pk>/ask/', views.ChatAskDanielView.as_view(), name='chat-ask-daniel'),
 
     # Experiments
     path('experiments/templates/', views.ExperimentTemplatesView.as_view(), name='experiment-templates'),

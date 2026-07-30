@@ -15,7 +15,7 @@ from .serializers import (
     ExperimentStatusSerializer,
     DailyCheckinSerializer,
 )
-from .services import trigger_ai_analysis, trigger_daily_action
+from .services import trigger_ai_analysis, trigger_daily_action, trigger_daniel_chat
 from .templates_config import EXPERIMENT_TEMPLATES
 
 
@@ -40,6 +40,36 @@ class ChatSessionListCreateView(APIView):
         )
         serializer = ChatSessionDetailSerializer(session)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class ChatAskDanielView(APIView):
+    """
+    Proxies the Daniel AI reply through the backend instead of the client
+    calling the n8n webhook directly. The webhook URL and full context payload
+    (onboarding profile, cognitive history, check-ins, experiments) never
+    leave the server. Does NOT persist messages -- the caller still appends
+    the user message and this response via ChatMessageListCreateView, exactly
+    as before, so ChatContext's optimistic-update flow is unchanged.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        chat_input = (request.data.get('text') or '').strip()
+        if not chat_input:
+            return Response({'error': 'text is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            session = ChatSession.objects.get(pk=pk, user=request.user)
+        except ChatSession.DoesNotExist:
+            return Response({'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        result = trigger_daniel_chat(request.user, session, chat_input)
+        if not result:
+            return Response(
+                {'error': 'Failed to reach the AI strategist. Check webhook configuration.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        return Response(result, status=status.HTTP_200_OK)
 
 
 class ChatSessionDetailView(APIView):

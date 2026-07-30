@@ -1,0 +1,552 @@
+{
+  "info": {
+    "_postman_id": "6f3a2d10-6b1a-4e4a-9b8a-do-what-works-001",
+    "name": "Do What Works API",
+    "description": "Full REST API for the Do What Works backend (Django + DRF + SimpleJWT). Base URL, tokens, and a few IDs are stored as collection variables. Login/Verify-OTP/Refresh requests auto-populate access_token/refresh_token via test scripts, so once you log in everything else in the collection just works (Authorization is inherited at the collection level).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access_token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "user_email", "value": "tester@example.com", "type": "string" },
+    { "key": "user_username", "value": "tester", "type": "string" },
+    { "key": "user_password", "value": "TestPass123!", "type": "string" },
+    { "key": "otp_code", "value": "", "type": "string" },
+    { "key": "reset_token", "value": "", "type": "string" },
+    { "key": "session_id", "value": "", "type": "string" },
+    { "key": "experiment_id", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/health/", "host": ["{{base_url}}"], "path": ["health", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Sign Up (send OTP)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"username\": \"{{user_username}}\",\n  \"password\": \"{{user_password}}\",\n  \"confirm_password\": \"{{user_password}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/signup/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "signup", ""] },
+            "description": "Creates a PendingRegistration and emails a 6-digit OTP (10 min expiry, 5 attempts max). No CustomUser row exists yet."
+          }
+        },
+        {
+          "name": "Verify OTP (creates user, returns JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('access_token', data.access);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh);",
+                  "  console.log('Tokens saved from Verify OTP');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"otp_code\": \"{{otp_code}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/verify-otp/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "verify-otp", ""] },
+            "description": "Paste the OTP you received by email into the `otp_code` collection variable before sending. Auto-saves access_token/refresh_token on success."
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('access_token', data.access);",
+                  "  pm.collectionVariables.set('refresh_token', data.refresh);",
+                  "  console.log('Tokens saved from Login');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{user_email}}\",\n  \"password\": \"{{user_password}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/login/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "login", ""] }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('access_token', data.access);",
+                  "  console.log('access_token refreshed');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/token/refresh/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "token", "refresh", ""] },
+            "description": "Access tokens last 60 min. Refresh tokens last 7 days, rotate on use, and are blacklisted after rotation (ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION) -- so save the NEW refresh token too if the response includes one."
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{user_email}}\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/auth/forgot-password/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "forgot-password", ""] },
+            "description": "Always returns 200 regardless of whether the email exists (anti-enumeration). Emails a reset link built from FRONTEND_URL -- for a mobile app you'll want a deep link here instead, see chat notes."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"{{user_password}}\",\n  \"confirm_password\": \"{{user_password}}\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/reset-password/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "reset-password", ""] },
+            "description": "token is the UUID from the emailed reset URL (?token=...), valid for 1 hour, single-use."
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/profile/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "profile", ""] }
+          }
+        },
+        {
+          "name": "Update Profile (multipart, incl. photo)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "username", "value": "{{user_username}}", "type": "text" },
+                { "key": "profile_photo", "type": "file", "src": "" }
+              ]
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/profile/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "profile", ""] },
+            "description": "Accepts multipart/form-data (MultiPartParser is enabled) so a mobile app can PATCH just the photo. email/is_email_verified/has_completed_onboarding/created_at are read-only."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Onboarding & Cognitive Baseline",
+      "item": [
+        {
+          "name": "Get Onboarding Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/onboarding/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "onboarding", ""] }
+          }
+        },
+        {
+          "name": "Submit Onboarding Answers (The Dig)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"step1-q1\": 2,\n    \"step1-q2\": 4,\n    \"step2-q1\": 0\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/onboarding/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "onboarding", ""] },
+            "description": "answers is a dict of question_id -> answer index (0-4, Strongly Disagree..Strongly Agree). Submitting this sets has_completed_onboarding=True. Can be combined with the cognitive scores below in one call, or sent separately. As a side effect, the backend also syncs the current profile to n8n (ONBOARDING_WEBHOOK_URL) -- this used to be a separate call made directly from the browser/app; now it's server-only."
+          }
+        },
+        {
+          "name": "Submit Attention Battery Scores",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"attention_score\": 78,\n  \"capacity_score\": 6,\n  \"control_score\": 92,\n  \"endurance_score\": 85\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/auth/onboarding/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "onboarding", ""] },
+            "description": "Result of the 3-game cognitive test (Digit Span/Stroop/CPT). capacity_score = digits recalled (3-9), control_score/endurance_score = accuracy %. Posting this also appends a CognitiveBaselineLog row -- retake anytime to build the progression history -- and syncs to n8n server-side (see note above)."
+          }
+        },
+        {
+          "name": "Get Cognitive Baseline History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/baseline-history/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "baseline-history", ""] },
+            "description": "Full time series of every Attention Battery attempt, oldest first. Powers the Overview progression chart."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription & Billing",
+      "item": [
+        {
+          "name": "Get Subscription Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/subscription/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "subscription", ""] }
+          }
+        },
+        {
+          "name": "Activate Subscription (manual/free, no payment)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/subscription/activate/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "subscription", "activate", ""] },
+            "description": "Grants a free 10-day sprint with no Stripe involvement. Useful for testing; should be gated/removed before public production launch."
+          }
+        },
+        {
+          "name": "Create Stripe Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/stripe/create-checkout/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "stripe", "create-checkout", ""] },
+            "description": "Returns { url } -- a Stripe-hosted checkout page. success_url/cancel_url are hardcoded to FRONTEND_URL/success and FRONTEND_URL/subscription, i.e. a WEB url. A native app cannot just hit this and expect a clean return -- see chat notes on App Store/Play Store IAP rules."
+          }
+        },
+        {
+          "name": "Stripe Webhook (reference only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Stripe-Signature", "value": "t=...,v1=..." }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": { "raw": "{{base_url}}/api/v1/auth/stripe/webhook/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "stripe", "webhook", ""] },
+            "description": "Not callable meaningfully from Postman -- Stripe computes the Stripe-Signature HMAC over the raw body using STRIPE_WEBHOOK_SECRET. Use the Stripe CLI instead: `stripe listen --forward-to localhost:8000/api/v1/auth/stripe/webhook/` then `stripe trigger checkout.session.completed`. Included here purely for documentation."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/notifications/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "notifications", ""] }
+          }
+        },
+        {
+          "name": "Mark One Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/notifications/1/mark_read/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "notifications", "1", "mark_read", ""] },
+            "description": "Replace the `1` in the path with a real notification id from the List response."
+          }
+        },
+        {
+          "name": "Mark All Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/auth/notifications/mark-all-read/", "host": ["{{base_url}}"], "path": ["api", "v1", "auth", "notifications", "mark-all-read", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat (Daniel)",
+      "item": [
+        {
+          "name": "List Chat Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", ""] }
+          }
+        },
+        {
+          "name": "Create Chat Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('session_id', String(data.id));",
+                  "  console.log('session_id saved: ' + data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"New Conversation\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", ""] }
+          }
+        },
+        {
+          "name": "Get Chat Session Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", "{{session_id}}", ""] }
+          }
+        },
+        {
+          "name": "Rename Chat Session",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Sleep & Focus Experiment\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", "{{session_id}}", ""] }
+          }
+        },
+        {
+          "name": "Append Message to Session (DB only)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sender\": \"user\",\n  \"text\": \"I believe I work better at night.\",\n  \"is_proposal\": false,\n  \"proposal_data\": {}\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/messages/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", "{{session_id}}", "messages", ""] },
+            "description": "Appends a message (user OR daniel) to the session's JSON history. Use this to store BOTH the user's text and the AI reply returned by 'Ask Daniel' below -- it does not call the AI itself."
+          }
+        },
+        {
+          "name": "Ask Daniel (AI reply, proxied through backend)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"I believe I work better at night.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/ask/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", "{{session_id}}", "ask", ""] },
+            "description": "Server-side proxy to the n8n Daniel workflow -- replaces the old pattern of the client calling the n8n webhook URL directly. The backend assembles onboarding profile + cognitive history + daily check-ins + experiment history itself, so the request body only needs `text`. Returns { text, is_proposal, proposal_data }: proposal_data is already parsed server-side (hypothesis/action/metric/duration) so no client-side regex is needed. Does NOT persist the messages -- call 'Append Message to Session' twice (once for the user's text, once for this response) to store them, matching how the web app's ChatContext works. Requires DANIEL_WEBHOOK_URL in backend/.env; returns 503 if unset."
+          }
+        },
+        {
+          "name": "Delete Chat Session",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "chat", "sessions", "{{session_id}}", ""] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Experiments",
+      "item": [
+        {
+          "name": "List Experiment Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/templates/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "templates", ""] }
+          }
+        },
+        {
+          "name": "List My Experiments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", ""] }
+          }
+        },
+        {
+          "name": "Create Experiment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.collectionVariables.set('experiment_id', String(data.id));",
+                  "  console.log('experiment_id saved: ' + data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hypothesis\": \"If I remove social media after 8 PM, then my sleep quality and morning clarity will improve.\",\n  \"action\": \"Do not open any social media apps after 8:00 PM.\",\n  \"metric\": \"Sleep Quality (1-10)\",\n  \"duration_days\": 7,\n  \"metrics_config\": [\n    { \"id\": \"sleep_quality\", \"label\": \"Sleep Quality (1-10)\", \"type\": \"rating_1_10\", \"default\": 5 },\n    { \"id\": \"screen_time_night\", \"label\": \"Avoided Night Social Media?\", \"type\": \"boolean\", \"default\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/experiments/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", ""] },
+            "description": "If the user already has an experiment with status='active', this new one is created as 'queued' and auto-promoted later (see signals.py). metrics_config is optional (defines the shape of logged_metrics on each daily log)."
+          }
+        },
+        {
+          "name": "Get Experiment Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", ""] }
+          }
+        },
+        {
+          "name": "Update Experiment Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"abandoned\"\n}" },
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", ""] },
+            "description": "status: active | queued | completed | abandoned. Setting to 'active' wipes ai_analysis and deletes existing logs (fresh restart) and fails if another experiment is already active."
+          }
+        },
+        {
+          "name": "Delete Experiment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", ""] }
+          }
+        },
+        {
+          "name": "List Daily Logs for Experiment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/logs/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", "logs", ""] }
+          }
+        },
+        {
+          "name": "Upsert Today's Daily Log",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"completed\": \"yes\",\n  \"metric_value\": 7.5,\n  \"logged_metrics\": {\n    \"sleep_quality\": 8,\n    \"screen_time_night\": true\n  },\n  \"notes\": \"Felt good, avoided phone after 8pm.\",\n  \"daily_observation\": \"Fell asleep faster than usual.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/logs/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", "logs", ""] },
+            "description": "Upserts by (experiment, today's date) -- always writes to TODAY, there is no way to backfill a past date via this endpoint. metric_value now supports decimals. If total logs reach duration_days, the experiment auto-completes and AI analysis is triggered synchronously (can take up to ~30s)."
+          }
+        },
+        {
+          "name": "Trigger AI Analysis (verdict)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/analyze/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", "analyze", ""] },
+            "description": "Synchronous call to the n8n ANALYSIS_WEBHOOK_URL (up to 30s). Returns pragmatic_score/verdict/analysis/recommendation, or 503 if the webhook isn't configured/fails."
+          }
+        },
+        {
+          "name": "Generate Today's Daily Action",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/{{experiment_id}}/generate-daily-action/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "{{experiment_id}}", "generate-daily-action", ""] },
+            "description": "Synchronous call to n8n DAILY_ACTION_WEBHOOK_URL. Creates/reuses today's (pending) log row and fills log.ai_suggestion. The mobile daily-log screen should call this BEFORE letting the user submit their log, matching the web flow."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Daily Metrics Check-in",
+      "item": [
+        {
+          "name": "Get Today's Check-in Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/v1/experiments/daily-checkin/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "daily-checkin", ""] }
+          }
+        },
+        {
+          "name": "Get Check-in History (30 days)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/experiments/daily-checkin/?history=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "experiments", "daily-checkin", ""],
+              "query": [{ "key": "history", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Submit Today's Check-in",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sleep\": 7,\n  \"exercise\": 5,\n  \"focus\": 6,\n  \"energy\": 7,\n  \"mood\": 8,\n  \"stress\": 4,\n  \"social\": 6,\n  \"progress\": 7,\n  \"notes\": \"Good day overall.\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/v1/experiments/daily-checkin/", "host": ["{{base_url}}"], "path": ["api", "v1", "experiments", "daily-checkin", ""] },
+            "description": "All 8 metrics required, integers 1-10 per the serializer (the web UI's 0.1-step slider values get rounded/validated as integers server-side -- see integration notes). Upserts by (user, today)."
+          }
+        }
+      ]
+    }
+  ]
+}

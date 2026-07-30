@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../components/AuthContext';
-import { syncToN8n } from '../services/n8nSync';
 import { AttentionBattery } from '../components/AttentionBattery';
 
 export const steps = [
@@ -115,7 +114,7 @@ export const options = [
 
 export const Onboarding = () => {
   const navigate = useNavigate();
-  const { refreshUser, user } = useAuth();
+  const { refreshUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,19 +153,14 @@ export const Onboarding = () => {
       setCurrentStep(prev => prev + 1);
       window.scrollTo(0, 0);
     } else {
-      // Last step — submit to backend
+      // Last step — submit to backend (also syncs to n8n server-side)
       setIsSubmitting(true);
       try {
         await api.post('/api/v1/auth/onboarding/', { answers });
         // Also save to localStorage as local cache for offline Preferences display
         localStorage.setItem('user_onboarding_data', JSON.stringify(answers));
         // Refresh user so has_completed_onboarding becomes true in AuthContext
-        const refreshed = await refreshUser();
-        
-        // Sync to n8n after local save is successful
-        // We get the user ID from AuthContext, or if refreshUser returns it
-        const currentUser = (refreshed as any)?.id ? refreshed : (await api.get('/api/v1/auth/profile/')).data;
-        await syncToN8n(currentUser?.id, answers);
+        await refreshUser();
 
         setShowCognitiveTest(true);
       } catch (err) {
@@ -195,9 +189,8 @@ export const Onboarding = () => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#C75F33]/5 rounded-full blur-[150px] pointer-events-none animate-float-alt" />
 
         <div className="relative z-10 w-full max-w-2xl">
-          <AttentionBattery 
-            onComplete={async (scores) => {
-              await syncToN8n(user?.id, answers, scores);
+          <AttentionBattery
+            onComplete={async () => {
               navigate('/daniel');
             }}
             onSkip={() => navigate('/daniel')}

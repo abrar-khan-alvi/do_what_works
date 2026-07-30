@@ -60,14 +60,14 @@ class ExperimentStatusSerializer(serializers.ModelSerializer):
 
 
 class DailyCheckinSerializer(serializers.ModelSerializer):
-    focus = serializers.IntegerField(min_value=1, max_value=10)
-    energy = serializers.IntegerField(min_value=1, max_value=10)
-    mood = serializers.IntegerField(min_value=1, max_value=10)
-    stress = serializers.IntegerField(min_value=1, max_value=10)
-    social = serializers.IntegerField(min_value=1, max_value=10)
-    progress = serializers.IntegerField(min_value=1, max_value=10)
-    sleep = serializers.IntegerField(min_value=1, max_value=10)
-    exercise = serializers.IntegerField(min_value=1, max_value=10)
+    focus = serializers.FloatField(min_value=1, max_value=10)
+    energy = serializers.FloatField(min_value=1, max_value=10)
+    mood = serializers.FloatField(min_value=1, max_value=10)
+    stress = serializers.FloatField(min_value=1, max_value=10)
+    social = serializers.FloatField(min_value=1, max_value=10)
+    progress = serializers.FloatField(min_value=1, max_value=10)
+    sleep = serializers.FloatField(min_value=1, max_value=10)
+    exercise = serializers.FloatField(min_value=1, max_value=10)
 
     class Meta:
         model = DailyCheckin

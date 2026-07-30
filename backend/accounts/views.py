@@ -19,6 +19,7 @@ from .serializers import (
     OnboardingSerializer, SubscriptionSerializer
 )
 from .emails import generate_otp, send_otp_email, send_password_reset_email
+from .services import trigger_onboarding_sync
 
 
 def get_tokens_for_user(user):
@@ -325,6 +326,22 @@ class OnboardingView(APIView):
         if 'answers' in serializer.validated_data:
             request.user.has_completed_onboarding = True
             request.user.save(update_fields=['has_completed_onboarding'])
+
+        # Sync to n8n server-side (replaces the old direct browser -> n8n call).
+        # Only include scores in the payload when THIS request carried them,
+        # matching the old client behavior exactly.
+        scores_payload = None
+        if 'attention_score' in serializer.validated_data and serializer.validated_data['attention_score'] is not None:
+            scores_payload = {
+                'attention_score': profile.attention_score,
+                'capacity_score': profile.capacity_score,
+                'control_score': profile.control_score,
+                'endurance_score': profile.endurance_score,
+            }
+        try:
+            trigger_onboarding_sync(request.user, profile.answers, scores_payload)
+        except Exception as e:
+            print(f"DEBUG: Failed to sync onboarding profile to n8n: {e}")
 
         return Response({
             'message': 'Onboarding profile saved successfully.',
