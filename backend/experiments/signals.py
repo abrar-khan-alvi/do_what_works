@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from .models import Experiment
@@ -26,6 +26,27 @@ def handle_experiment_succession(sender, instance, created, **kwargs):
             
             if next_queued:
                 # Update status and start_date
+                next_queued.status = 'active'
+                next_queued.start_date = timezone.now().date()
+                next_queued.save()
+
+@receiver(post_delete, sender=Experiment)
+def handle_experiment_deletion(sender, instance, **kwargs):
+    """
+    Auto-succession logic for deletion: When an active experiment is deleted,
+    automatically activate the next 'queued' experiment for the user.
+    """
+    if instance.status == 'active':
+        user = instance.user
+        
+        has_active = Experiment.objects.filter(user=user, status='active').exists()
+        
+        if not has_active:
+            next_queued = Experiment.objects.filter(
+                user=user, status='queued'
+            ).order_by('created_at').first()
+            
+            if next_queued:
                 next_queued.status = 'active'
                 next_queued.start_date = timezone.now().date()
                 next_queued.save()
